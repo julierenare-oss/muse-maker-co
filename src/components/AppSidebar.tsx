@@ -1,34 +1,25 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Plus, MessageSquare, Image, History, Star, BarChart3,
+  Plus, History, BarChart3,
   Settings, Users, Key, ChevronLeft, ChevronRight, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { icon: Plus, label: "New Request", path: "/app" },
-  { icon: Image, label: "Gallery", path: "/app/gallery" },
   { icon: History, label: "History", path: "/app/history" },
-  { icon: Star, label: "Prompt Library", path: "/app/prompts" },
-  { icon: BarChart3, label: "Statistics", path: "/app/stats", ownerOnly: true },
+  { icon: BarChart3, label: "Billing", path: "/app/stats", ownerOnly: true },
   { icon: Users, label: "Team", path: "/app/team", ownerOnly: true },
   { icon: Key, label: "API Keys", path: "/app/api-keys" },
   { icon: Settings, label: "Settings", path: "/app/settings" },
-];
-
-const recentChats = [
-  { id: "1", title: "Product description generation", modality: "text" },
-  { id: "2", title: "Brand logo variations", modality: "image" },
-  { id: "3", title: "Explainer video script", modality: "video" },
 ];
 
 const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isOwner = true; // TODO: role check
+  const isOwner = true; // TODO: role check from auth
 
   return (
     <aside
@@ -64,32 +55,10 @@ const AppSidebar = () => {
         </Button>
       </div>
 
-      {/* Recent Chats */}
-      {!collapsed && (
-        <div className="px-3 mb-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mb-2">Recent</p>
-          <div className="space-y-1">
-            {recentChats.map((chat) => (
-              <button
-                key={chat.id}
-                className="w-full text-left px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors truncate"
-              >
-                <MessageSquare className="h-3 w-3 inline mr-2 opacity-50" />
-                {chat.title}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-        {!collapsed && (
-          <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mb-2">Navigation</p>
-        )}
         {navItems
           .filter((item) => !item.ownerOnly || isOwner)
-          .filter((item) => item.label !== "New Request")
           .map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
