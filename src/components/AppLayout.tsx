@@ -3,7 +3,7 @@ import AppSidebar from "./AppSidebar";
 
 const AppLayout = () => {
   return (
-    <div className="dark flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <AppSidebar />
       <main className="flex-1 overflow-y-auto">
         <Outlet />
