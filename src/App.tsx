@@ -6,9 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/AppLayout";
 import GenerationPage from "./pages/GenerationPage";
-import GalleryPage from "./pages/GalleryPage";
 import HistoryPage from "./pages/HistoryPage";
-import PromptLibraryPage from "./pages/PromptLibraryPage";
 import StatsPage from "./pages/StatsPage";
 import TeamPage from "./pages/TeamPage";
 import ApiKeysPage from "./pages/ApiKeysPage";
@@ -27,9 +25,7 @@ const App = () => (
           <Route path="/" element={<AuthPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<GenerationPage />} />
-            <Route path="gallery" element={<GalleryPage />} />
             <Route path="history" element={<HistoryPage />} />
-            <Route path="prompts" element={<PromptLibraryPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="api-keys" element={<ApiKeysPage />} />

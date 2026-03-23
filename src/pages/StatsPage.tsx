@@ -1,94 +1,80 @@
-import { Upload, Users, BarChart3 } from "lucide-react";
+import { Upload, Download, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
-const teamUsage = [
-  { member: "Alice", requests: 145, tokens: 520000, cost: "$12.40" },
-  { member: "Bob", requests: 98, tokens: 310000, cost: "$8.20" },
-  { member: "Carol", requests: 67, tokens: 180000, cost: "$5.10" },
+interface MonthlyReport {
+  id: string;
+  month: string;
+  year: number;
+  fileName: string;
+  uploadedAt: string;
+}
+
+const mockReports: MonthlyReport[] = [
+  { id: "1", month: "March", year: 2026, fileName: "usage_march_2026.xlsx", uploadedAt: "2026-03-15" },
+  { id: "2", month: "February", year: 2026, fileName: "usage_february_2026.xlsx", uploadedAt: "2026-02-14" },
+  { id: "3", month: "January", year: 2026, fileName: "usage_january_2026.xlsx", uploadedAt: "2026-01-12" },
+  { id: "4", month: "December", year: 2025, fileName: "usage_december_2025.xlsx", uploadedAt: "2025-12-18" },
 ];
 
 const StatsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [reports] = useState<MonthlyReport[]>(mockReports);
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Statistics & Billing</h1>
-          <p className="text-sm text-muted-foreground">Upload monthly usage report and view team breakdown</p>
+          <h1 className="text-xl font-semibold text-foreground">Billing</h1>
+          <p className="text-sm text-muted-foreground">Upload monthly usage reports and download past files</p>
         </div>
         <div>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+          <Button variant="glow" onClick={() => fileInputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-2" />
             Upload Report
           </Button>
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">310</p>
-              <p className="text-xs text-muted-foreground">Total Requests</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <Users className="h-5 w-5 text-accent" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">3</p>
-              <p className="text-xs text-muted-foreground">Team Members</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <span className="text-emerald-400 font-bold">$</span>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">$25.70</p>
-              <p className="text-xs text-muted-foreground">Total Cost (March)</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Team usage table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Usage by Team Member</h2>
+          <h2 className="text-sm font-medium text-foreground">Monthly Reports</h2>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left px-5 py-3 text-xs text-muted-foreground font-medium">Member</th>
-              <th className="text-right px-5 py-3 text-xs text-muted-foreground font-medium">Requests</th>
-              <th className="text-right px-5 py-3 text-xs text-muted-foreground font-medium">Tokens</th>
-              <th className="text-right px-5 py-3 text-xs text-muted-foreground font-medium">Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teamUsage.map((u) => (
-              <tr key={u.member} className="border-b border-border last:border-0 hover:bg-secondary/30">
-                <td className="px-5 py-3 text-sm text-foreground">{u.member}</td>
-                <td className="px-5 py-3 text-sm text-foreground text-right">{u.requests}</td>
-                <td className="px-5 py-3 text-sm text-muted-foreground text-right font-mono">{u.tokens.toLocaleString()}</td>
-                <td className="px-5 py-3 text-sm text-foreground text-right">{u.cost}</td>
-              </tr>
+        {reports.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">
+            No reports uploaded yet. Upload your first monthly usage file.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {reports.map((report) => (
+              <div
+                key={report.id}
+                className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <FileSpreadsheet className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {report.month} {report.year}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {report.fileName} · Uploaded {report.uploadedAt}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Download
+                </Button>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        )}
       </div>
     </div>
   );

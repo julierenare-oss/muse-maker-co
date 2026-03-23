@@ -1,4 +1,4 @@
-import { RefreshCw, Type, Image, Video, AudioLines } from "lucide-react";
+import { Download, Copy, Type, Image, Video, AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,15 +8,14 @@ interface HistoryItem {
   modality: "text" | "image" | "video" | "audio";
   model: string;
   date: string;
-  params: string;
 }
 
 const mockHistory: HistoryItem[] = [
-  { id: "1", prompt: "Write a product description for AI camera with 48MP sensor and night mode", modality: "text", model: "GPT-5", date: "2026-03-23 14:32", params: "temp=0.7, max_tokens=4096" },
-  { id: "2", prompt: "Minimalist tech brand logo, blue and white, clean geometric shapes", modality: "image", model: "DALL-E 4", date: "2026-03-22 10:15", params: "style=natural, ratio=1:1" },
-  { id: "3", prompt: "15-second product explainer video showing the app interface on a smartphone", modality: "video", model: "Sora", date: "2026-03-21 16:45", params: "duration=15s, ratio=16:9" },
-  { id: "4", prompt: "Professional voiceover for advertisement: Welcome to the future of productivity", modality: "audio", model: "TTS-HD", date: "2026-03-20 09:00", params: "voice=female, speed=1.0" },
-  { id: "5", prompt: "Market analysis report covering trends in AI adoption across European enterprises", modality: "text", model: "GPT-5", date: "2026-03-19 11:30", params: "temp=0.5, max_tokens=8192" },
+  { id: "1", prompt: "Write a product description for AI camera with 48MP sensor and night mode", modality: "text", model: "GPT-5", date: "2026-03-23 14:32" },
+  { id: "2", prompt: "Minimalist tech brand logo, blue and white, clean geometric shapes", modality: "image", model: "DALL-E 4", date: "2026-03-22 10:15" },
+  { id: "3", prompt: "15-second product explainer video showing the app interface on a smartphone", modality: "video", model: "Sora", date: "2026-03-21 16:45" },
+  { id: "4", prompt: "Professional voiceover for advertisement: Welcome to the future of productivity", modality: "audio", model: "TTS-HD", date: "2026-03-20 09:00" },
+  { id: "5", prompt: "Market analysis report covering trends in AI adoption across European enterprises", modality: "text", model: "GPT-5", date: "2026-03-19 11:30" },
 ];
 
 const modalityIcon = { text: Type, image: Image, video: Video, audio: AudioLines };
@@ -26,7 +25,7 @@ const HistoryPage = () => {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-foreground">History</h1>
-        <p className="text-sm text-muted-foreground">Your past generation requests</p>
+        <p className="text-sm text-muted-foreground">Your past generation requests, newest first</p>
       </div>
 
       <div className="space-y-3">
@@ -53,19 +52,18 @@ const HistoryPage = () => {
                     <span>{item.model}</span>
                     <span>·</span>
                     <span>{item.date}</span>
-                    <span>·</span>
-                    <span className="font-mono">{item.params}</span>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  title="Repeat this request"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Repeat
-                </Button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <Button variant="outline" size="sm" title="Copy result">
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copy
+                  </Button>
+                  <Button variant="outline" size="sm" title="Download result">
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
               </div>
             </div>
           );

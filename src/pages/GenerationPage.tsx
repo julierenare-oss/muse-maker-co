@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
 
-const MAX_CHARS = 10000;
+const MAX_CHARS = 2000;
 
 const GenerationPage = () => {
   const [modality, setModality] = useState<Modality>("text");
