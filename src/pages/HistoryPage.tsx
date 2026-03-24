@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchConversations, fetchConversationMessages } from "@/lib/api";
+import { useChatStore } from "@/lib/chatStore";
 
 interface Conversation {
   uuid: string;
@@ -14,6 +15,7 @@ const HistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const loadConversation = useChatStore((s) => s.loadConversation);
 
   useEffect(() => {
     fetchConversations()
@@ -26,11 +28,8 @@ const HistoryPage = () => {
     setLoadingId(conv.uuid);
     try {
       const msgs = await fetchConversationMessages(conv.uuid);
-      const loadFn = (window as any).__loadConversation;
-      if (loadFn) {
-        loadFn(conv.uuid, msgs);
-        navigate("/app");
-      }
+      loadConversation(conv.uuid, msgs as { role: "user" | "assistant"; content: string }[]);
+      navigate("/app");
     } catch (e) {
       console.error(e);
     } finally {
