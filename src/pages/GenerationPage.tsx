@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
 import { fetchModels, sendMessage } from "@/lib/api";
@@ -118,21 +117,7 @@ const GenerationPage = () => {
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {modality === "text" && models.length > 0 && (
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="w-[220px] bg-secondary border-border">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
             <ModalitySelector value={modality} onChange={setModality} />
-          </div>
         </header>
 
         {/* Chat area */}
@@ -295,7 +280,7 @@ const GenerationPage = () => {
 
       {/* Parameters sidebar */}
       <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
-        <ModalityParams modality={modality} />
+        <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
       </aside>
     </div>
   );

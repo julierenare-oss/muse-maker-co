@@ -1,22 +1,17 @@
+import { useEffect, useState } from "react";
 import type { Modality } from "./ModalitySelector";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fetchModels } from "@/lib/api";
 
 interface ModalityParamsProps {
   modality: Modality;
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
 }
 
-const modelsByModality: Record<Modality, { value: string; label: string }[]> = {
-  text: [
-    { value: "gpt-5", label: "GPT-5" },
-    { value: "gpt-5-mini", label: "GPT-5 Mini" },
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { value: "claude-4-sonnet", label: "Claude 4 Sonnet" },
-    { value: "deepseek-v3", label: "DeepSeek V3" },
-    { value: "llama-4", label: "Llama 4" },
-  ],
+const modelsByModality: Record<Exclude<Modality, "text">, { value: string; label: string }[]> = {
   image: [
     { value: "dall-e-4", label: "DALL·E 4" },
     { value: "midjourney-v7", label: "Midjourney V7" },
@@ -38,7 +33,7 @@ const modelsByModality: Record<Modality, { value: string; label: string }[]> = {
   ],
 };
 
-const ModelSelector = ({ modality }: { modality: Modality }) => {
+const StaticModelSelector = ({ modality }: { modality: Exclude<Modality, "text"> }) => {
   const models = modelsByModality[modality];
   return (
     <div className="space-y-2">
@@ -55,12 +50,30 @@ const ModelSelector = ({ modality }: { modality: Modality }) => {
   );
 };
 
-const ModalityParams = ({ modality }: ModalityParamsProps) => {
+const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityParamsProps) => {
+  const [apiModels, setApiModels] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (modality === "text") {
+      fetchModels().then(setApiModels).catch(console.error);
+    }
+  }, [modality]);
+
   if (modality === "text") {
     return (
       <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
         <h3 className="text-sm font-medium text-foreground">Text Parameters</h3>
-        <ModelSelector modality={modality} />
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Model</Label>
+          <Select value={selectedModel} onValueChange={onModelChange}>
+            <SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger>
+            <SelectContent>
+              {apiModels.map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Temperature</Label>
           <Slider defaultValue={[0.7]} max={2} step={0.1} className="w-full" />
@@ -88,7 +101,7 @@ const ModalityParams = ({ modality }: ModalityParamsProps) => {
     return (
       <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
         <h3 className="text-sm font-medium text-foreground">Image Parameters</h3>
-        <ModelSelector modality={modality} />
+        <StaticModelSelector modality="image" />
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Style</Label>
           <Select defaultValue="natural">
@@ -122,7 +135,7 @@ const ModalityParams = ({ modality }: ModalityParamsProps) => {
     return (
       <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
         <h3 className="text-sm font-medium text-foreground">Video Parameters</h3>
-        <ModelSelector modality={modality} />
+        <StaticModelSelector modality="video" />
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Duration</Label>
           <Select defaultValue="5">
@@ -154,7 +167,7 @@ const ModalityParams = ({ modality }: ModalityParamsProps) => {
   return (
     <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
       <h3 className="text-sm font-medium text-foreground">Audio Parameters</h3>
-      <ModelSelector modality={modality} />
+      <StaticModelSelector modality="audio" />
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Voice</Label>
         <Select defaultValue="female">
