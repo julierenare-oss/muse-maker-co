@@ -51,8 +51,7 @@ const AppSidebar = () => {
           variant="glow"
           className={cn("w-full", collapsed ? "px-0" : "")}
           onClick={() => {
-            const newFn = (window as any).__newConversation;
-            if (newFn) newFn();
+            newConversation();
             navigate("/app");
           }}
         >
