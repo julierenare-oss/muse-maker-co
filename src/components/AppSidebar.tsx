@@ -7,8 +7,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/chatStore";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: History, label: "History", path: "/app/history" },
