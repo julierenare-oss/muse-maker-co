@@ -30,6 +30,29 @@ export async function fetchConversationMessages(
   return json.data;
 }
 
+function parseSSELine(line: string): { token: string | null; done: boolean } {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("data:")) return { token: null, done: false };
+
+  const raw = trimmed.slice(5).trim();
+
+  if (raw === "[DONE]") return { token: null, done: true };
+
+  // Try parsing as JSON first (in case server sends JSON payloads)
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "string") return { token: parsed, done: false };
+    if (parsed && typeof parsed.text === "string") return { token: parsed.text, done: false };
+    if (parsed && typeof parsed.content === "string") return { token: parsed.content, done: false };
+  } catch {
+    // Not JSON — treat as plain text token
+  }
+
+  // Clean any control characters and return raw text
+  const cleaned = raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return { token: cleaned, done: false };
+}
+
 export async function sendMessage(
   message: string,
   model: string,
@@ -60,14 +83,14 @@ export async function sendMessage(
     buffer = lines.pop() || "";
 
     for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) continue;
-      const data = trimmed.slice(5).trim();
-      if (data === "[DONE]") {
+      const { token, done: streamDone } = parseSSELine(line);
+      if (streamDone) {
         onDone();
         return;
       }
-      onToken(data);
+      if (token) {
+        onToken(token);
+      }
     }
   }
   onDone();

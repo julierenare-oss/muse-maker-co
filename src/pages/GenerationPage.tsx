@@ -7,26 +7,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
 import { fetchModels, sendMessage } from "@/lib/api";
+import { useChatStore } from "@/lib/chatStore";
 
 const MAX_CHARS = 2000;
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
 
 const GenerationPage = () => {
   const [modality, setModality] = useState<Modality>("text");
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
   const [models, setModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { messages, conversationId, setMessages } = useChatStore();
 
   useEffect(() => {
     fetchModels().then((m) => {
@@ -42,13 +38,12 @@ const GenerationPage = () => {
   const handleSend = useCallback(() => {
     if (!prompt.trim() || isGenerating || modality !== "text") return;
 
-    const userMessage: ChatMessage = { role: "user", content: prompt.trim() };
+    const userMessage = { role: "user" as const, content: prompt.trim() };
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setIsGenerating(true);
 
-    const assistantMessage: ChatMessage = { role: "assistant", content: "" };
-    setMessages((prev) => [...prev, assistantMessage]);
+    setMessages((prev) => [...prev, { role: "assistant" as const, content: "" }]);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -60,7 +55,7 @@ const GenerationPage = () => {
       selectedModel,
       conversationId,
       (token) => {
-        accumulated += (accumulated ? " " : "") + token;
+        accumulated += token;
         const current = accumulated;
         setMessages((prev) => {
           const updated = [...prev];
@@ -77,7 +72,7 @@ const GenerationPage = () => {
       setIsGenerating(false);
       abortRef.current = null;
     });
-  }, [prompt, isGenerating, modality, selectedModel, conversationId]);
+  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages]);
 
   const handleStop = () => {
     abortRef.current?.abort();
@@ -94,19 +89,6 @@ const GenerationPage = () => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Called from history to load a conversation
-  const loadConversation = (id: string, msgs: ChatMessage[]) => {
-    setConversationId(id);
-    setMessages(msgs);
-  };
-
-  // Expose for sidebar/history usage
-  (window as any).__loadConversation = loadConversation;
-  (window as any).__newConversation = () => {
-    setConversationId(crypto.randomUUID());
-    setMessages([]);
-  };
-
   return (
     <div className="flex h-full">
       {/* Main content */}
@@ -117,7 +99,7 @@ const GenerationPage = () => {
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
           </div>
-            <ModalitySelector value={modality} onChange={setModality} />
+          <ModalitySelector value={modality} onChange={setModality} />
         </header>
 
         {/* Chat area */}
@@ -192,7 +174,6 @@ const GenerationPage = () => {
 
         {/* Input area */}
         <div className={cn("border-t border-primary/20 p-4", modality === "video" && "opacity-40 pointer-events-none")}>
-          {/* File chips */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {files.map((file, i) => (
