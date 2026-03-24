@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Send, Square, Paperclip, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
