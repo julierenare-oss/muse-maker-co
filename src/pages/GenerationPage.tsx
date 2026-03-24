@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
 import { fetchModels, sendMessage } from "@/lib/api";
