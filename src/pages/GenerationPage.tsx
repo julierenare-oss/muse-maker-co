@@ -280,7 +280,7 @@ const GenerationPage = () => {
 
       {/* Parameters sidebar */}
       <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
-        <ModalityParams modality={modality} />
+        <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
       </aside>
     </div>
   );
