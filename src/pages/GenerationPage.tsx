@@ -36,7 +36,7 @@ const GenerationPage = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-primary/20 px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
@@ -60,7 +60,7 @@ const GenerationPage = () => {
         </div>
 
         {/* Input area */}
-        <div className="border-t border-border p-4">
+        <div className="border-t border-primary/20 p-4">
           {/* File chips */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
@@ -152,7 +152,7 @@ const GenerationPage = () => {
       </div>
 
       {/* Parameters sidebar */}
-      <aside className="w-72 border-l border-border p-4 overflow-y-auto hidden lg:block">
+      <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
         <ModalityParams modality={modality} />
       </aside>
     </div>

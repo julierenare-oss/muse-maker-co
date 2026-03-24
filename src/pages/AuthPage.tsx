@@ -29,7 +29,7 @@ const AuthPage = () => {
           <p className="text-muted-foreground mt-2">AI Generation Platform</p>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-8 shadow-xl">
+        <div className="bg-card card-glow rounded-xl p-8 shadow-xl">
           <div className="flex gap-2 mb-6">
             <Button
               variant={isLogin ? "default" : "ghost"}

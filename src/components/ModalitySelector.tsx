@@ -17,7 +17,7 @@ const modalities: { id: Modality; label: string; icon: typeof Type }[] = [
 
 const ModalitySelector = ({ value, onChange }: ModalitySelectorProps) => {
   return (
-    <div className="flex gap-1 p-1 bg-secondary rounded-lg">
+    <div className="flex gap-1 p-1 bg-secondary/80 rounded-lg border border-primary/20">
       {modalities.map((m) => {
         const Icon = m.icon;
         const active = value === m.id;
