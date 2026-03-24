@@ -60,7 +60,7 @@ const GenerationPage = () => {
         </div>
 
         {/* Input area */}
-        <div className="border-t border-border p-4">
+        <div className="border-t border-primary/20 p-4">
           {/* File chips */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
