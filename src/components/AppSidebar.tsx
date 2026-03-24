@@ -48,7 +48,11 @@ const AppSidebar = () => {
         <Button
           variant="glow"
           className={cn("w-full", collapsed ? "px-0" : "")}
-          onClick={() => navigate("/app")}
+          onClick={() => {
+            const newFn = (window as any).__newConversation;
+            if (newFn) newFn();
+            navigate("/app");
+          }}
         >
           <Plus className="h-4 w-4" />
           {!collapsed && <span>New Request</span>}
