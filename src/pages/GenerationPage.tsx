@@ -152,7 +152,7 @@ const GenerationPage = () => {
       </div>
 
       {/* Parameters sidebar */}
-      <aside className="w-72 border-l border-border p-4 overflow-y-auto hidden lg:block">
+      <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
         <ModalityParams modality={modality} />
       </aside>
     </div>

@@ -34,7 +34,7 @@ const HistoryPage = () => {
           return (
             <div
               key={item.id}
-              className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors group animate-slide-up"
+              className="bg-card card-glow rounded-xl p-4 transition-colors group animate-slide-up"
             >
               <div className="flex items-start gap-4">
                 <div className={cn(
