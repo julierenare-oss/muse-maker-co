@@ -46,17 +46,29 @@ const GenerationPage = () => {
 
         {/* Chat area - empty state */}
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-md animate-slide-up">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <span className="text-2xl">✦</span>
+          {modality === "video" ? (
+            <div className="text-center max-w-md animate-slide-up">
+              <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-center">
+                <span className="text-3xl">🎬</span>
+              </div>
+              <h2 className="text-2xl font-bold gradient-text mb-3">Coming Soon</h2>
+              <p className="text-sm text-muted-foreground">
+                Video generation is currently in development. Stay tuned — this feature will be available soon!
+              </p>
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              What would you like to generate?
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Choose a modality above, set your parameters, and describe your request in detail below.
-            </p>
-          </div>
+          ) : (
+            <div className="text-center max-w-md animate-slide-up">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <span className="text-2xl">✦</span>
+              </div>
+              <h2 className="text-lg font-semibold text-foreground mb-2">
+                What would you like to generate?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Choose a modality above, set your parameters, and describe your request in detail below.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Input area */}
