@@ -36,7 +36,7 @@ const GenerationPage = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-primary/20 px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
