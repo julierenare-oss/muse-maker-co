@@ -72,7 +72,7 @@ const GenerationPage = () => {
         </div>
 
         {/* Input area */}
-        <div className="border-t border-primary/20 p-4">
+        <div className={cn("border-t border-primary/20 p-4", modality === "video" && "opacity-40 pointer-events-none")}>
           {/* File chips */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
