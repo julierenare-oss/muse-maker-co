@@ -21,6 +21,7 @@ const AppSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isOwner = true; // TODO: role check from auth
+  const newConversation = useChatStore((s) => s.newConversation);
 
   return (
     <aside
