@@ -117,21 +117,7 @@ const GenerationPage = () => {
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {modality === "text" && models.length > 0 && (
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="w-[220px] bg-secondary border-border">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
             <ModalitySelector value={modality} onChange={setModality} />
-          </div>
         </header>
 
         {/* Chat area */}
