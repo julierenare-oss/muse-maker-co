@@ -21,8 +21,9 @@ const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isOwner = true; // TODO: role check from auth
+  const isOwner = true;
   const newConversation = useChatStore((s) => s.newConversation);
+  const logout = useAuthStore((s) => s.logout);
 
   return (
     <aside
