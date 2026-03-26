@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Paperclip, X, User, Bot } from "lucide-react";
+import { Send, Square, Paperclip, X, User, Bot, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
-import { fetchModels, sendMessage } from "@/lib/api";
+import { fetchModels, sendMessage, uploadFile } from "@/lib/api";
 import { useChatStore } from "@/lib/chatStore";
+import { useChatParams } from "@/lib/chatParams";
 
 const MAX_CHARS = 2000;
 
@@ -15,6 +16,8 @@ const GenerationPage = () => {
   const [modality, setModality] = useState<Modality>("text");
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [models, setModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
@@ -23,6 +26,7 @@ const GenerationPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, conversationId, setMessages } = useChatStore();
+  const { temperature, maxTokens, topP } = useChatParams();
 
   useEffect(() => {
     fetchModels().then((m) => {
@@ -49,6 +53,9 @@ const GenerationPage = () => {
     abortRef.current = controller;
 
     let accumulated = "";
+    const currentAttachments = [...uploadedUrls];
+    setUploadedUrls([]);
+    setFiles([]);
 
     sendMessage(
       userMessage.content,
@@ -67,33 +74,46 @@ const GenerationPage = () => {
         setIsGenerating(false);
         abortRef.current = null;
       },
-      controller.signal
+      controller.signal,
+      currentAttachments,
+      { temperature, max_tokens: maxTokens, top_p: topP }
     ).catch(() => {
       setIsGenerating(false);
       abortRef.current = null;
     });
-  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages]);
+  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, temperature, maxTokens, topP]);
 
   const handleStop = () => {
     abortRef.current?.abort();
     setIsGenerating(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const newFiles = Array.from(e.target.files);
+    setFiles((prev) => [...prev, ...newFiles]);
+    setUploading(true);
+
+    try {
+      for (const file of newFiles) {
+        const result = await uploadFile(file);
+        setUploadedUrls((prev) => [...prev, result.url]);
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploading(false);
     }
   };
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+    setUploadedUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="flex h-full">
-      {/* Main content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="border-b border-primary/20 px-6 py-4 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
@@ -102,7 +122,6 @@ const GenerationPage = () => {
           <ModalitySelector value={modality} onChange={setModality} />
         </header>
 
-        {/* Chat area */}
         <div className="flex-1 overflow-hidden">
           {modality === "video" ? (
             <div className="h-full flex items-center justify-center p-8">
@@ -172,7 +191,6 @@ const GenerationPage = () => {
           )}
         </div>
 
-        {/* Input area */}
         <div className={cn("border-t border-primary/20 p-4", modality === "video" && "opacity-40 pointer-events-none")}>
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
@@ -182,6 +200,9 @@ const GenerationPage = () => {
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary text-sm text-secondary-foreground"
                 >
                   {file.name}
+                  {uploading && i >= uploadedUrls.length && (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  )}
                   <button onClick={() => removeFile(i)} className="hover:text-destructive">
                     <X className="h-3 w-3" />
                   </button>
@@ -224,33 +245,22 @@ const GenerationPage = () => {
                 multiple
                 className="hidden"
                 onChange={handleFileChange}
-                accept={modality === "text" ? ".pdf,.xlsx,.xls,.doc,.docx" : undefined}
               />
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach files"
+                disabled={uploading}
               >
-                <Paperclip className="h-4 w-4" />
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
               </Button>
               {isGenerating ? (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={handleStop}
-                  title="Stop generation"
-                >
+                <Button variant="destructive" size="icon" onClick={handleStop} title="Stop generation">
                   <Square className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button
-                  variant="glow"
-                  size="icon"
-                  onClick={handleSend}
-                  disabled={!prompt.trim()}
-                  title="Send"
-                >
+                <Button variant="glow" size="icon" onClick={handleSend} disabled={!prompt.trim()} title="Send">
                   <Send className="h-4 w-4" />
                 </Button>
               )}
@@ -259,7 +269,6 @@ const GenerationPage = () => {
         </div>
       </div>
 
-      {/* Parameters sidebar */}
       <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
         <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
       </aside>

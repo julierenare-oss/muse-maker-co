@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/chatStore";
+import { useAuthStore } from "@/lib/auth";
 
 const navItems = [
   { icon: History, label: "History", path: "/app/history" },
@@ -20,8 +21,9 @@ const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isOwner = true; // TODO: role check from auth
+  const isOwner = true;
   const newConversation = useChatStore((s) => s.newConversation);
+  const logout = useAuthStore((s) => s.logout);
 
   return (
     <aside
@@ -90,7 +92,10 @@ const AppSidebar = () => {
       {/* User */}
       <div className="p-3 border-t border-sidebar-border">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            logout();
+            navigate("/");
+          }}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
             collapsed && "justify-center"

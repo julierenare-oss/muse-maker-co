@@ -1,21 +1,74 @@
-const API_BASE = "https://kafkatestdomen.site/api/v1";
-const API_TOKEN = "Admin123";
+import { useAuthStore } from "./auth";
 
-const headers = {
-  accept: "application/json",
-  "X-Token": API_TOKEN,
-};
+const API_BASE = "https://kafkatestdomen.site/api/v1";
+const PROJECT_ID = "1";
+
+function getHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().token;
+  return {
+    accept: "application/json",
+    "X-Project-ID": PROJECT_ID,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+export async function login(username: string, password: string): Promise<string> {
+  const body = new URLSearchParams({
+    grant_type: "password",
+    username,
+    password,
+    scope: "",
+    client_id: "string",
+    client_secret: "string",
+  });
+
+  const res = await fetch(`${API_BASE}/token`, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Project-ID": PROJECT_ID,
+    },
+    body,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Login failed");
+  }
+
+  const json = await res.json();
+  return json.access_token;
+}
+
+export async function uploadFile(file: File): Promise<{ key: string; url: string; filename: string; content_type: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers = getHeaders();
+  delete headers["accept"]; // let browser set multipart headers
+
+  const res = await fetch(`${API_BASE}/upload`, {
+    method: "POST",
+    headers: {
+      "X-Project-ID": PROJECT_ID,
+      ...(useAuthStore.getState().token ? { Authorization: `Bearer ${useAuthStore.getState().token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error("Upload failed");
+  return res.json();
+}
 
 export async function fetchModels(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/models`, { headers });
+  const res = await fetch(`${API_BASE}/models`, { headers: getHeaders() });
   const json = await res.json();
   return json.data;
 }
 
-export async function fetchConversations(): Promise<
-  { uuid: string; title: string }[]
-> {
-  const res = await fetch(`${API_BASE}/conversations`, { headers });
+export async function fetchConversations(): Promise<{ uuid: string; title: string }[]> {
+  const res = await fetch(`${API_BASE}/conversations`, { headers: getHeaders() });
   const json = await res.json();
   return json.data;
 }
@@ -24,7 +77,7 @@ export async function fetchConversationMessages(
   conversationId: string
 ): Promise<{ role: string; content: string }[]> {
   const res = await fetch(`${API_BASE}/conversations/${conversationId}`, {
-    headers,
+    headers: getHeaders(),
   });
   const json = await res.json();
   return json.data;
@@ -35,22 +88,25 @@ function parseSSELine(line: string): { token: string | null; done: boolean } {
   if (!trimmed.startsWith("data:")) return { token: null, done: false };
 
   const raw = trimmed.slice(5).trim();
-
   if (raw === "[DONE]") return { token: null, done: true };
 
-  // Try parsing as JSON first (in case server sends JSON payloads)
   try {
     const parsed = JSON.parse(raw);
     if (typeof parsed === "string") return { token: parsed, done: false };
     if (parsed && typeof parsed.text === "string") return { token: parsed.text, done: false };
     if (parsed && typeof parsed.content === "string") return { token: parsed.content, done: false };
   } catch {
-    // Not JSON — treat as plain text token
+    // plain text
   }
 
-  // Clean any control characters and return raw text
   const cleaned = raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   return { token: cleaned, done: false };
+}
+
+export interface ChatParams {
+  temperature: number;
+  max_tokens: number;
+  top_p: number;
 }
 
 export async function sendMessage(
@@ -59,12 +115,22 @@ export async function sendMessage(
   conversationId: string,
   onToken: (token: string) => void,
   onDone: () => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  attachments?: string[],
+  params?: ChatParams
 ) {
   const res = await fetch(`${API_BASE}/conversations`, {
     method: "POST",
-    headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ message, model, conversation_id: conversationId }),
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      content: message,
+      model,
+      attachments: attachments || [],
+      temperature: params?.temperature ?? 1,
+      max_tokens: params?.max_tokens ?? 4096,
+      top_p: params?.top_p ?? 1,
+    }),
     signal,
   });
 
