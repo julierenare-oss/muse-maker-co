@@ -92,7 +92,10 @@ const AppSidebar = () => {
       {/* User */}
       <div className="p-3 border-t border-sidebar-border">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            logout();
+            navigate("/");
+          }}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
             collapsed && "justify-center"
