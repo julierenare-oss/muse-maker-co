@@ -77,9 +77,18 @@ const GenerationPage = () => {
       controller.signal,
       currentAttachments,
       { temperature, max_tokens: maxTokens, top_p: topP }
-    ).catch(() => {
+    ).catch((err) => {
       setIsGenerating(false);
       abortRef.current = null;
+      // Show error as a system message
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: "❌ Something went wrong. Please try again.",
+        };
+        return updated;
+      });
     });
   }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, temperature, maxTokens, topP]);
 
