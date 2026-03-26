@@ -164,15 +164,21 @@ const GenerationPage = () => {
                     )}
                     <div
                       className={cn(
-                        "max-w-[75%] rounded-xl px-4 py-3 text-sm whitespace-pre-wrap",
+                        "max-w-[75%] rounded-xl px-4 py-3 text-sm",
                         msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-foreground border border-border"
+                          ? "bg-primary text-primary-foreground whitespace-pre-wrap"
+                          : "bg-secondary text-foreground border border-border prose prose-sm prose-invert max-w-none prose-p:my-1 prose-pre:bg-background prose-pre:border prose-pre:border-border prose-code:text-primary prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
                       )}
                     >
-                      {msg.content}
-                      {msg.role === "assistant" && i === messages.length - 1 && isGenerating && (
-                        <span className="inline-block w-2 h-4 ml-1 bg-primary/60 animate-pulse rounded-sm" />
+                      {msg.role === "assistant" ? (
+                        <>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          {i === messages.length - 1 && isGenerating && (
+                            <span className="inline-block w-2 h-4 ml-1 bg-primary/60 animate-pulse rounded-sm" />
+                          )}
+                        </>
+                      ) : (
+                        msg.content
                       )}
                     </div>
                     {msg.role === "user" && (
