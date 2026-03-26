@@ -45,9 +45,6 @@ export async function uploadFile(file: File): Promise<{ key: string; url: string
   const formData = new FormData();
   formData.append("file", file);
 
-  const headers = getHeaders();
-  delete headers["accept"]; // let browser set multipart headers
-
   const res = await fetch(`${API_BASE}/upload`, {
     method: "POST",
     headers: {
@@ -58,7 +55,8 @@ export async function uploadFile(file: File): Promise<{ key: string; url: string
   });
 
   if (!res.ok) throw new Error("Upload failed");
-  return res.json();
+  const json = await res.json();
+  return json.data;
 }
 
 export async function fetchModels(): Promise<string[]> {
