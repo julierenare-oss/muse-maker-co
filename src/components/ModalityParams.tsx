@@ -3,7 +3,9 @@ import type { Modality } from "./ModalitySelector";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { fetchModels } from "@/lib/api";
+import { useChatParams } from "@/lib/chatParams";
 
 interface ModalityParamsProps {
   modality: Modality;
@@ -52,6 +54,7 @@ const StaticModelSelector = ({ modality }: { modality: Exclude<Modality, "text">
 
 const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityParamsProps) => {
   const [apiModels, setApiModels] = useState<string[]>([]);
+  const { temperature, maxTokens, topP, setTemperature, setMaxTokens, setTopP } = useChatParams();
 
   useEffect(() => {
     if (modality === "text") {
@@ -75,23 +78,52 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
           </Select>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Temperature</Label>
-          <Slider defaultValue={[0.7]} max={2} step={0.1} className="w-full" />
+          <div className="flex justify-between items-center">
+            <Label className="text-xs text-muted-foreground">Temperature</Label>
+            <span className="text-xs font-mono text-foreground">{temperature.toFixed(1)}</span>
+          </div>
+          <Slider
+            value={[temperature]}
+            onValueChange={([v]) => setTemperature(v)}
+            min={0}
+            max={2}
+            step={0.1}
+            className="w-full"
+          />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Precise (0)</span><span>Creative (2)</span>
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Max Tokens</Label>
-          <Select defaultValue="4096">
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1024">1,024</SelectItem>
-              <SelectItem value="2048">2,048</SelectItem>
-              <SelectItem value="4096">4,096</SelectItem>
-              <SelectItem value="8192">8,192</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex justify-between items-center">
+            <Label className="text-xs text-muted-foreground">Max Tokens</Label>
+            <span className="text-xs font-mono text-foreground">{maxTokens}</span>
+          </div>
+          <Input
+            type="number"
+            min={1}
+            max={32768}
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(Math.min(32768, Math.max(1, Number(e.target.value) || 1)))}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Label className="text-xs text-muted-foreground">Top P</Label>
+            <span className="text-xs font-mono text-foreground">{topP.toFixed(2)}</span>
+          </div>
+          <Slider
+            value={[topP]}
+            onValueChange={([v]) => setTopP(v)}
+            min={0}
+            max={1}
+            step={0.01}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Focused (0)</span><span>Diverse (1)</span>
+          </div>
         </div>
       </div>
     );
