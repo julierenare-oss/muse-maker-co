@@ -44,10 +44,18 @@ const GenerationPage = () => {
   const handleSend = useCallback(() => {
     if (!prompt.trim() || isGenerating || modality !== "text") return;
 
-    const userMessage = { role: "user" as const, content: prompt.trim() };
+    const currentAttachments = [...uploadedUrls];
+    const currentFiles = [...files];
+    const userMessage = {
+      role: "user" as const,
+      content: prompt.trim(),
+      ...(currentAttachments.length > 0 ? { attachments: currentAttachments } : {}),
+    };
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setIsGenerating(true);
+    setUploadedUrls([]);
+    setFiles([]);
 
     setMessages((prev) => [...prev, { role: "assistant" as const, content: "" }]);
 

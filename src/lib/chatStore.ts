@@ -1,8 +1,9 @@
 import { create } from "zustand";
 
-interface ChatMessage {
+export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  attachments?: string[];
 }
 
 interface ChatStore {
