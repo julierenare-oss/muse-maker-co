@@ -183,7 +183,19 @@ const GenerationPage = () => {
                           )}
                         </>
                       ) : (
-                        msg.content
+                        <>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                              {msg.attachments.map((url, ai) => (
+                                <span key={ai} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-foreground/20 text-xs">
+                                  <Paperclip className="h-3 w-3" />
+                                  Attachment {ai + 1}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {msg.content}
+                        </>
                       )}
                     </div>
                     {msg.role === "user" && (
