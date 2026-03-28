@@ -185,13 +185,32 @@ const GenerationPage = () => {
                       ) : (
                         <>
                           {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-2">
-                              {msg.attachments.map((url, ai) => (
-                                <span key={ai} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-foreground/20 text-xs">
-                                  <Paperclip className="h-3 w-3" />
-                                  Attachment {ai + 1}
-                                </span>
-                              ))}
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {msg.attachments.map((url, ai) => {
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split('?')[0]);
+                                return (
+                                  <a
+                                    key={ai}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block rounded-lg overflow-hidden border border-primary-foreground/20 hover:opacity-80 transition-opacity"
+                                  >
+                                    {isImage ? (
+                                      <img
+                                        src={url}
+                                        alt={`Attachment ${ai + 1}`}
+                                        className="max-w-[160px] max-h-[120px] object-cover"
+                                      />
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-foreground/20 text-xs">
+                                        <Paperclip className="h-3 w-3" />
+                                        Attachment {ai + 1}
+                                      </span>
+                                    )}
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
                           {msg.content}
