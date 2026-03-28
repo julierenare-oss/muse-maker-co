@@ -73,7 +73,7 @@ export async function fetchConversations(): Promise<{ uuid: string; title: strin
 
 export async function fetchConversationMessages(
   conversationId: string
-): Promise<{ role: string; content: string }[]> {
+): Promise<{ role: string; content: string; attachments?: string[] }[]> {
   const res = await fetch(`${API_BASE}/conversations/${conversationId}`, {
     headers: getHeaders(),
   });

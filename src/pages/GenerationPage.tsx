@@ -44,10 +44,18 @@ const GenerationPage = () => {
   const handleSend = useCallback(() => {
     if (!prompt.trim() || isGenerating || modality !== "text") return;
 
-    const userMessage = { role: "user" as const, content: prompt.trim() };
+    const currentAttachments = [...uploadedUrls];
+    const currentFiles = [...files];
+    const userMessage = {
+      role: "user" as const,
+      content: prompt.trim(),
+      ...(currentAttachments.length > 0 ? { attachments: currentAttachments } : {}),
+    };
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setIsGenerating(true);
+    setUploadedUrls([]);
+    setFiles([]);
 
     setMessages((prev) => [...prev, { role: "assistant" as const, content: "" }]);
 
@@ -55,9 +63,6 @@ const GenerationPage = () => {
     abortRef.current = controller;
 
     let accumulated = "";
-    const currentAttachments = [...uploadedUrls];
-    setUploadedUrls([]);
-    setFiles([]);
 
     sendMessage(
       userMessage.content,
@@ -92,7 +97,7 @@ const GenerationPage = () => {
         return updated;
       });
     });
-  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, temperature, maxTokens, topP]);
+  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, files, temperature, maxTokens, topP]);
 
   const handleStop = () => {
     abortRef.current?.abort();
@@ -178,7 +183,19 @@ const GenerationPage = () => {
                           )}
                         </>
                       ) : (
-                        msg.content
+                        <>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                              {msg.attachments.map((url, ai) => (
+                                <span key={ai} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-foreground/20 text-xs">
+                                  <Paperclip className="h-3 w-3" />
+                                  Attachment {ai + 1}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {msg.content}
+                        </>
                       )}
                     </div>
                     {msg.role === "user" && (
