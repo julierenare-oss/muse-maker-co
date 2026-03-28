@@ -97,7 +97,7 @@ const GenerationPage = () => {
         return updated;
       });
     });
-  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, temperature, maxTokens, topP]);
+  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, files, temperature, maxTokens, topP]);
 
   const handleStop = () => {
     abortRef.current?.abort();
