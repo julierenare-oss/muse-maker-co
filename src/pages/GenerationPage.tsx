@@ -63,9 +63,6 @@ const GenerationPage = () => {
     abortRef.current = controller;
 
     let accumulated = "";
-    const currentAttachments = [...uploadedUrls];
-    setUploadedUrls([]);
-    setFiles([]);
 
     sendMessage(
       userMessage.content,
