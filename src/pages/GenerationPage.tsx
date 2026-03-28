@@ -186,7 +186,7 @@ const GenerationPage = () => {
                         <>
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-2">
-                              {msg.attachments.map((url, ai) => {
+                              {msg.attachments.filter((u): u is string => typeof u === 'string' && u.length > 0).map((url, ai) => {
                                 const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split('?')[0]);
                                 return (
                                   <a
