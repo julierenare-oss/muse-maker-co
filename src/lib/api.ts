@@ -78,7 +78,13 @@ export async function fetchConversationMessages(
     headers: getHeaders(),
   });
   const json = await res.json();
-  return json.data;
+  return (json.data || []).map((msg: any) => ({
+    role: msg.role,
+    content: msg.content,
+    ...(msg.attachments?.length ? {
+      attachments: msg.attachments.map((a: any) => typeof a === 'string' ? a : a?.url).filter(Boolean)
+    } : {}),
+  }));
 }
 
 function parseSSELine(line: string): { token: string | null; done: boolean } {
