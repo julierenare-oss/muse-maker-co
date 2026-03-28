@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Paperclip, X, User, Bot, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Send, Square, Paperclip, X, Loader2 } from "lucide-react";
+import ChatBubble from "@/components/ChatBubble";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -155,74 +154,12 @@ const GenerationPage = () => {
             <ScrollArea className="h-full">
               <div className="max-w-3xl mx-auto p-6 space-y-4">
                 {messages.map((msg, i) => (
-                  <div
+                  <ChatBubble
                     key={i}
-                    className={cn(
-                      "flex gap-3",
-                      msg.role === "user" ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    {msg.role === "assistant" && (
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0 mt-1">
-                        <Bot className="h-4 w-4 text-primary" />
-                      </div>
-                    )}
-                    <div
-                      className={cn(
-                        "max-w-[75%] rounded-xl px-4 py-3 text-sm",
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground whitespace-pre-wrap"
-                          : "bg-secondary text-foreground border border-border prose prose-sm prose-invert max-w-none prose-p:my-1 prose-pre:bg-background prose-pre:border prose-pre:border-border prose-code:text-primary prose-headings:text-foreground prose-strong:text-foreground prose-a:text-primary"
-                      )}
-                    >
-                      {msg.role === "assistant" ? (
-                        <>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                          {i === messages.length - 1 && isGenerating && (
-                            <span className="inline-block w-2 h-4 ml-1 bg-primary/60 animate-pulse rounded-sm" />
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {msg.attachments.filter((u): u is string => typeof u === 'string' && u.length > 0).map((url, ai) => {
-                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split('?')[0]);
-                                return (
-                                  <a
-                                    key={ai}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block rounded-lg overflow-hidden border border-primary-foreground/20 hover:opacity-80 transition-opacity"
-                                  >
-                                    {isImage ? (
-                                      <img
-                                        src={url}
-                                        alt={`Attachment ${ai + 1}`}
-                                        className="max-w-[160px] max-h-[120px] object-cover"
-                                      />
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-foreground/20 text-xs">
-                                        <Paperclip className="h-3 w-3" />
-                                        Attachment {ai + 1}
-                                      </span>
-                                    )}
-                                  </a>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {msg.content}
-                        </>
-                      )}
-                    </div>
-                    {msg.role === "user" && (
-                      <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center shrink-0 mt-1">
-                        <User className="h-4 w-4 text-accent" />
-                      </div>
-                    )}
-                  </div>
+                    message={msg}
+                    isLast={i === messages.length - 1}
+                    isGenerating={isGenerating}
+                  />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
