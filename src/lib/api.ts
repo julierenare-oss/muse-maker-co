@@ -113,6 +113,22 @@ export interface ChatParams {
   top_p: number;
 }
 
+export async function getUserProfile(): Promise<{ occupation: string; bio: string }> {
+  const res = await fetch(`${API_BASE}/user_profile`, { headers: getHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch profile");
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateUserProfile(occupation: string, bio: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/user_profile`, {
+    method: "POST",
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ occupation, bio }),
+  });
+  if (!res.ok) throw new Error("Failed to update profile");
+}
+
 export async function sendMessage(
   message: string,
   model: string,
