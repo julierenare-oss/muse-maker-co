@@ -71,6 +71,14 @@ export async function fetchConversations(): Promise<{ uuid: string; title: strin
   return json.data;
 }
 
+export async function deleteConversation(conversationId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to delete conversation");
+}
+
 export async function fetchConversationMessages(
   conversationId: string
 ): Promise<{ role: string; content: string; attachments?: string[] }[]> {
