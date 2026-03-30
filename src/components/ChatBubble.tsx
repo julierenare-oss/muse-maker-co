@@ -12,6 +12,41 @@ interface ChatBubbleProps {
   isGenerating: boolean;
 }
 
+const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split("?")[0]);
+const isVideoUrl = (url: string) => /\.(mp4|webm|mov|avi)/i.test(url.split("?")[0]);
+
+const AttachmentRenderer = ({ urls }: { urls: string[] }) => (
+  <div className="flex flex-wrap gap-2 mt-2">
+    {urls.map((url, i) => {
+      if (isVideoUrl(url)) {
+        return (
+          <video
+            key={i}
+            src={url}
+            controls
+            className="max-w-[320px] rounded-lg border border-border"
+          />
+        );
+      }
+      if (isImageUrl(url)) {
+        return (
+          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+            className="block rounded-lg overflow-hidden border border-border hover:opacity-80 transition-opacity">
+            <img src={url} alt={`Attachment ${i + 1}`} className="max-w-[240px] max-h-[200px] object-cover" />
+          </a>
+        );
+      }
+      return (
+        <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary rounded-lg text-xs text-muted-foreground hover:text-foreground border border-border">
+          <Paperclip className="h-3 w-3" />
+          Attachment {i + 1}
+        </a>
+      );
+    })}
+  </div>
+);
+
 const ChatBubble = ({ message, isLast, isGenerating }: ChatBubbleProps) => {
   const [copied, setCopied] = useState(false);
 
@@ -49,23 +84,28 @@ const ChatBubble = ({ message, isLast, isGenerating }: ChatBubbleProps) => {
         >
           {message.role === "assistant" ? (
             <>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...props }) {
-                    const isBlock = /language-/.test(className || "") || String(children).includes("\n");
-                    if (isBlock) {
-                      return <CodeBlock className={className}>{children}</CodeBlock>;
-                    }
-                    return <InlineCode>{children}</InlineCode>;
-                  },
-                  pre({ children }) {
-                    return <>{children}</>;
-                  },
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
+              {message.content && (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({ className, children, ...props }) {
+                      const isBlock = /language-/.test(className || "") || String(children).includes("\n");
+                      if (isBlock) {
+                        return <CodeBlock className={className}>{children}</CodeBlock>;
+                      }
+                      return <InlineCode>{children}</InlineCode>;
+                    },
+                    pre({ children }) {
+                      return <>{children}</>;
+                    },
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              )}
+              {attachments && attachments.length > 0 && (
+                <AttachmentRenderer urls={attachments} />
+              )}
               {isLast && isGenerating && (
                 <span className="inline-block w-2 h-4 ml-1 bg-primary/60 animate-pulse rounded-sm" />
               )}
@@ -75,16 +115,11 @@ const ChatBubble = ({ message, isLast, isGenerating }: ChatBubbleProps) => {
               {attachments && attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
                   {attachments.map((url, ai) => {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split("?")[0]);
+                    const isImg = isImageUrl(url);
                     return (
-                      <a
-                        key={ai}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-lg overflow-hidden border border-primary-foreground/20 hover:opacity-80 transition-opacity"
-                      >
-                        {isImage ? (
+                      <a key={ai} href={url} target="_blank" rel="noopener noreferrer"
+                        className="block rounded-lg overflow-hidden border border-primary-foreground/20 hover:opacity-80 transition-opacity">
+                        {isImg ? (
                           <img src={url} alt={`Attachment ${ai + 1}`} className="max-w-[160px] max-h-[120px] object-cover" />
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-foreground/20 text-xs">

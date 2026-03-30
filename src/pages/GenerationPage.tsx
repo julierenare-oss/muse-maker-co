@@ -5,46 +5,45 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ModalitySelector, { type Modality } from "@/components/ModalitySelector";
+import ModalitySelector from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
-import { fetchModels, sendMessage, uploadFile } from "@/lib/api";
-import { useChatStore } from "@/lib/chatStore";
+import { sendTextMessage, sendImageMessage, sendVideoMessage, uploadFile } from "@/lib/api";
+import { useChatStore, type ChatModality } from "@/lib/chatStore";
 import { useChatParams } from "@/lib/chatParams";
 
 const MAX_CHARS = 2000;
 
 const GenerationPage = () => {
-  const [modality, setModality] = useState<Modality>("text");
+  const { modality, messages, conversationId, setMessages, setModality, newConversation } = useChatStore();
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [models, setModels] = useState<string[]>([]);
+  const [generationStatus, setGenerationStatus] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, conversationId, setMessages } = useChatStore();
-  const { temperature, maxTokens, topP } = useChatParams();
-
-  useEffect(() => {
-    fetchModels().then((m) => {
-      setModels(m);
-      if (m.length > 0) setSelectedModel(m[0]);
-    });
-  }, []);
+  const params = useChatParams();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleModalityChange = (m: ChatModality) => {
+    if (m !== modality) {
+      setModality(m);
+      newConversation();
+      setSelectedModel("");
+    }
+  };
+
   const handleSend = useCallback(() => {
-    if (!prompt.trim() || isGenerating || modality !== "text") return;
+    if (!prompt.trim() || isGenerating) return;
 
     const currentAttachments = [...uploadedUrls];
-    const currentFiles = [...files];
     const userMessage = {
       role: "user" as const,
       content: prompt.trim(),
@@ -53,6 +52,7 @@ const GenerationPage = () => {
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setIsGenerating(true);
+    setGenerationStatus(null);
     setUploadedUrls([]);
     setFiles([]);
 
@@ -61,32 +61,10 @@ const GenerationPage = () => {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    let accumulated = "";
-
-    sendMessage(
-      userMessage.content,
-      selectedModel,
-      conversationId,
-      (token) => {
-        accumulated += token;
-        const current = accumulated;
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { role: "assistant", content: current };
-          return updated;
-        });
-      },
-      () => {
-        setIsGenerating(false);
-        abortRef.current = null;
-      },
-      controller.signal,
-      currentAttachments,
-      { temperature, max_tokens: maxTokens, top_p: topP }
-    ).catch((err) => {
+    const onError = () => {
       setIsGenerating(false);
+      setGenerationStatus(null);
       abortRef.current = null;
-      // Show error as a system message
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {
@@ -95,12 +73,100 @@ const GenerationPage = () => {
         };
         return updated;
       });
-    });
-  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, files, temperature, maxTokens, topP]);
+    };
+
+    if (modality === "text") {
+      let accumulated = "";
+      sendTextMessage(
+        userMessage.content,
+        selectedModel,
+        conversationId,
+        {
+          onToken: (token) => {
+            accumulated += token;
+            const current = accumulated;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { role: "assistant", content: current };
+              return updated;
+            });
+          },
+          onDone: (attachments) => {
+            setIsGenerating(false);
+            abortRef.current = null;
+            if (attachments) {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                updated[updated.length - 1] = { ...last, attachments };
+                return updated;
+              });
+            }
+          },
+        },
+        controller.signal,
+        currentAttachments,
+        { temperature: params.temperature, max_tokens: params.maxTokens }
+      ).catch(onError);
+    } else if (modality === "image") {
+      sendImageMessage(
+        userMessage.content,
+        selectedModel,
+        conversationId,
+        {
+          onToken: () => {},
+          onDone: (attachments) => {
+            setIsGenerating(false);
+            setGenerationStatus(null);
+            abortRef.current = null;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                role: "assistant",
+                content: "",
+                ...(attachments ? { attachments } : {}),
+              };
+              return updated;
+            });
+          },
+          onStatus: (status) => setGenerationStatus(status),
+        },
+        controller.signal,
+        { n: params.imageN, size: params.imageSize, quality: params.imageQuality }
+      ).catch(onError);
+    } else if (modality === "video") {
+      sendVideoMessage(
+        userMessage.content,
+        selectedModel,
+        conversationId,
+        {
+          onToken: () => {},
+          onDone: (attachments) => {
+            setIsGenerating(false);
+            setGenerationStatus(null);
+            abortRef.current = null;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                role: "assistant",
+                content: "",
+                ...(attachments ? { attachments } : {}),
+              };
+              return updated;
+            });
+          },
+          onStatus: (status) => setGenerationStatus(status),
+        },
+        controller.signal,
+        { size: params.videoSize, seconds: params.videoSeconds }
+      ).catch(onError);
+    }
+  }, [prompt, isGenerating, modality, selectedModel, conversationId, setMessages, uploadedUrls, params]);
 
   const handleStop = () => {
     abortRef.current?.abort();
     setIsGenerating(false);
+    setGenerationStatus(null);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,6 +192,8 @@ const GenerationPage = () => {
     setUploadedUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const hasMessages = messages.length > 0;
+
   return (
     <div className="flex h-full">
       <div className="flex-1 flex flex-col">
@@ -134,23 +202,11 @@ const GenerationPage = () => {
             <h1 className="text-xl font-semibold text-foreground">New Request</h1>
             <p className="text-sm text-muted-foreground">Select modality and describe what you need</p>
           </div>
-          <ModalitySelector value={modality} onChange={setModality} />
+          <ModalitySelector value={modality} onChange={handleModalityChange} />
         </header>
 
         <div className="flex-1 overflow-hidden">
-          {modality === "video" ? (
-            <div className="h-full flex items-center justify-center p-8">
-              <div className="text-center max-w-md animate-slide-up">
-                <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-center">
-                  <span className="text-3xl">🎬</span>
-                </div>
-                <h2 className="text-2xl font-bold gradient-text mb-3">Coming Soon</h2>
-                <p className="text-sm text-muted-foreground">
-                  Video generation is currently in development. Stay tuned — this feature will be available soon!
-                </p>
-              </div>
-            </div>
-          ) : modality === "text" && messages.length > 0 ? (
+          {hasMessages ? (
             <ScrollArea className="h-full">
               <div className="max-w-3xl mx-auto p-6 space-y-4">
                 {messages.map((msg, i) => (
@@ -161,6 +217,17 @@ const GenerationPage = () => {
                     isGenerating={isGenerating}
                   />
                 ))}
+                {/* Generation status indicator for image/video */}
+                {isGenerating && generationStatus && (
+                  <div className="flex items-center gap-3 justify-start">
+                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                      <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                    </div>
+                    <div className="rounded-xl px-4 py-3 text-sm bg-secondary text-muted-foreground border border-border">
+                      {generationStatus}
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -168,20 +235,26 @@ const GenerationPage = () => {
             <div className="h-full flex items-center justify-center p-8">
               <div className="text-center max-w-md animate-slide-up">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <span className="text-2xl">✦</span>
+                  <span className="text-2xl">
+                    {modality === "text" ? "✦" : modality === "image" ? "🎨" : "🎬"}
+                  </span>
                 </div>
                 <h2 className="text-lg font-semibold text-foreground mb-2">
-                  What would you like to generate?
+                  {modality === "text"
+                    ? "What would you like to generate?"
+                    : modality === "image"
+                    ? "Describe the image you want"
+                    : "Describe the video you want"}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose a modality above, set your parameters, and describe your request in detail below.
+                  Set your parameters on the right and describe your request below.
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        <div className={cn("border-t border-primary/20 p-4", modality === "video" && "opacity-40 pointer-events-none")}>
+        <div className="border-t border-primary/20 p-4">
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {files.map((file, i) => (
@@ -209,9 +282,7 @@ const GenerationPage = () => {
                     ? "Describe what text you'd like to generate..."
                     : modality === "image"
                     ? "Describe the image you want to create..."
-                    : modality === "video"
-                    ? "Describe your video concept in detail..."
-                    : "Enter the text you'd like converted to speech..."
+                    : "Describe your video concept in detail..."
                 }
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value.slice(0, MAX_CHARS))}
@@ -229,22 +300,26 @@ const GenerationPage = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                title="Attach files"
-                disabled={uploading}
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-              </Button>
+              {modality === "text" && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach files"
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                  </Button>
+                </>
+              )}
               {isGenerating ? (
                 <Button variant="destructive" size="icon" onClick={handleStop} title="Stop generation">
                   <Square className="h-4 w-4" />
