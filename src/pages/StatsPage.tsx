@@ -86,16 +86,20 @@ const StatsPage = () => {
                     {report.fileName} · Uploaded {report.uploadedAt}
                   </p>
                 </div>
-                <a href={report.downloadUrl} download target="_blank" rel="noopener noreferrer">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  disabled={downloadingId === report.id}
+                  onClick={() => handleDownload(report)}
+                >
+                  {downloadingId === report.id ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
                     <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                </a>
+                  )}
+                  Download
+                </Button>
               </div>
             ))}
           </div>
