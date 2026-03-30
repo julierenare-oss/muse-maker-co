@@ -1,6 +1,7 @@
-import { Upload, Download, FileSpreadsheet } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface MonthlyReport {
   id: string;
@@ -20,6 +21,28 @@ const mockReports: MonthlyReport[] = [
 const StatsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reports] = useState<MonthlyReport[]>(mockReports);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (report: MonthlyReport) => {
+    setDownloadingId(report.id);
+    try {
+      const res = await fetch(report.downloadUrl);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = report.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download file");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -63,16 +86,20 @@ const StatsPage = () => {
                     {report.fileName} · Uploaded {report.uploadedAt}
                   </p>
                 </div>
-                <a href={report.downloadUrl} download target="_blank" rel="noopener noreferrer">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  disabled={downloadingId === report.id}
+                  onClick={() => handleDownload(report)}
+                >
+                  {downloadingId === report.id ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
                     <Download className="h-3 w-3 mr-1" />
-                    Download
-                  </Button>
-                </a>
+                  )}
+                  Download
+                </Button>
               </div>
             ))}
           </div>
