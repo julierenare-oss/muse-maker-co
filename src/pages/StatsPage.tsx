@@ -21,6 +21,28 @@ const mockReports: MonthlyReport[] = [
 const StatsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [reports] = useState<MonthlyReport[]>(mockReports);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (report: MonthlyReport) => {
+    setDownloadingId(report.id);
+    try {
+      const res = await fetch(report.downloadUrl);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = report.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download file");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
