@@ -1,18 +1,16 @@
-import { Type, Image, Video, AudioLines } from "lucide-react";
+import { Type, Image, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export type Modality = "text" | "image" | "video" | "audio";
+import type { ChatModality } from "@/lib/chatStore";
 
 interface ModalitySelectorProps {
-  value: Modality;
-  onChange: (m: Modality) => void;
+  value: ChatModality;
+  onChange: (m: ChatModality) => void;
 }
 
-const modalities: { id: Modality; label: string; icon: typeof Type }[] = [
+const modalities: { id: ChatModality; label: string; icon: typeof Type }[] = [
   { id: "text", label: "Text", icon: Type },
   { id: "image", label: "Image", icon: Image },
   { id: "video", label: "Video", icon: Video },
-  { id: "audio", label: "Audio", icon: AudioLines },
 ];
 
 const ModalitySelector = ({ value, onChange }: ModalitySelectorProps) => {
