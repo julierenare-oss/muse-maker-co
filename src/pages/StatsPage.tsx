@@ -8,13 +8,13 @@ interface MonthlyReport {
   year: number;
   fileName: string;
   uploadedAt: string;
+  downloadUrl: string;
 }
 
 const mockReports: MonthlyReport[] = [
-  { id: "1", month: "March", year: 2026, fileName: "usage_march_2026.xlsx", uploadedAt: "2026-03-15" },
-  { id: "2", month: "February", year: 2026, fileName: "usage_february_2026.xlsx", uploadedAt: "2026-02-14" },
-  { id: "3", month: "January", year: 2026, fileName: "usage_january_2026.xlsx", uploadedAt: "2026-01-12" },
-  { id: "4", month: "December", year: 2025, fileName: "usage_december_2025.xlsx", uploadedAt: "2025-12-18" },
+  { id: "1", month: "March", year: 2026, fileName: "march.pdf", uploadedAt: "2026-03-15", downloadUrl: "https://s3c2.001.gpucloud.ru/test-cdn-bucket/documents/march.pdf" },
+  { id: "2", month: "February", year: 2026, fileName: "feb.pdf", uploadedAt: "2026-02-14", downloadUrl: "https://s3c2.001.gpucloud.ru/test-cdn-bucket/documents/feb.pdf" },
+  { id: "3", month: "January", year: 2026, fileName: "january.pdf", uploadedAt: "2026-01-12", downloadUrl: "https://s3c2.001.gpucloud.ru/test-cdn-bucket/documents/january.pdf" },
 ];
 
 const StatsPage = () => {
@@ -63,14 +63,16 @@ const StatsPage = () => {
                     {report.fileName} · Uploaded {report.uploadedAt}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                >
-                  <Download className="h-3 w-3 mr-1" />
-                  Download
-                </Button>
+                <a href={report.downloadUrl} download target="_blank" rel="noopener noreferrer">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </a>
               </div>
             ))}
           </div>
