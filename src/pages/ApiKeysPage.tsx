@@ -26,6 +26,12 @@ const ApiKeysPage = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <Alert className="border-primary/30 bg-primary/5">
+        <Construction className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm text-muted-foreground">
+          🚧 This page is under development. Full functionality coming soon.
+        </AlertDescription>
+      </Alert>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">API Keys</h1>
