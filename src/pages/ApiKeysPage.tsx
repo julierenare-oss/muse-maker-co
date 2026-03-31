@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Plus, Copy, Eye, EyeOff, Trash2, Key } from "lucide-react";
+import { Plus, Copy, Eye, EyeOff, Trash2, Key, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ApiKey {
   id: string;
