@@ -4,6 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AuthPage from "./pages/AuthPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
+import EmailPreviewPage from "./pages/EmailPreviewPage";
 import AppLayout from "./components/AppLayout";
 import GenerationPage from "./pages/GenerationPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -23,6 +27,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="/email-preview" element={<EmailPreviewPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<GenerationPage />} />
             <Route path="history" element={<HistoryPage />} />
