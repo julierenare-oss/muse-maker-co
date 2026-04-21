@@ -8,6 +8,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import EmailPreviewPage from "./pages/EmailPreviewPage";
+import DocsPage from "./pages/DocsPage";
 import AppLayout from "./components/AppLayout";
 import GenerationPage from "./pages/GenerationPage";
 import HistoryPage from "./pages/HistoryPage";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/accept-invite" element={<AcceptInvitePage />} />
           <Route path="/email-preview" element={<EmailPreviewPage />} />
+          <Route path="/docs" element={<DocsPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<GenerationPage />} />
             <Route path="history" element={<HistoryPage />} />
