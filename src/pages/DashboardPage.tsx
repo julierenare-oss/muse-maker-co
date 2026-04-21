@@ -649,4 +649,4 @@ const DashboardPage = () => {
   );
 };
 
-export default cn ? DashboardPage : DashboardPage;
+export default DashboardPage;

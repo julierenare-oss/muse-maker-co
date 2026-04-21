@@ -13,6 +13,7 @@ import AppLayout from "./components/AppLayout";
 import GenerationPage from "./pages/GenerationPage";
 import HistoryPage from "./pages/HistoryPage";
 import StatsPage from "./pages/StatsPage";
+import DashboardPage from "./pages/DashboardPage";
 import TeamPage from "./pages/TeamPage";
 import ApiKeysPage from "./pages/ApiKeysPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<GenerationPage />} />
             <Route path="history" element={<HistoryPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="api-keys" element={<ApiKeysPage />} />
