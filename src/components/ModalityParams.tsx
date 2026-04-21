@@ -50,7 +50,7 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
     fetchModels().then(setAllModels).catch(console.error);
   }, []);
 
-  const models = allModels[modality] || [];
+  const models = allModels?.[modality] ?? [];
 
   useEffect(() => {
     if (models.length > 0 && (!selectedModel || !models.includes(selectedModel))) {
