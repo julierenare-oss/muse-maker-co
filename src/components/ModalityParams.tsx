@@ -61,10 +61,7 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
   if (modality === "text") {
     return (
       <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground">Text Parameters</h3>
-          <DocsLink />
-        </div>
+        <h3 className="text-sm font-medium text-foreground">Text Parameters</h3>
         <div className="space-y-2">
           <ParamLabel hint="Языковая модель, которая будет обрабатывать ваш запрос. Разные модели отличаются скоростью, качеством и стоимостью.">
             Model
@@ -109,6 +106,9 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
             className="h-8 text-sm"
           />
         </div>
+        <div className="pt-2 border-t border-border flex justify-center">
+          <DocsLink />
+        </div>
       </div>
     );
   }
@@ -116,10 +116,7 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
   if (modality === "image") {
     return (
       <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground">Image Parameters</h3>
-          <DocsLink />
-        </div>
+        <h3 className="text-sm font-medium text-foreground">Image Parameters</h3>
         <div className="space-y-2">
           <ParamLabel hint="Модель генерации изображений. Каждая имеет свой визуальный стиль и сильные стороны.">
             Model
@@ -173,6 +170,9 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
             </SelectContent>
           </Select>
         </div>
+        <div className="pt-2 border-t border-border flex justify-center">
+          <DocsLink />
+        </div>
       </div>
     );
   }
@@ -180,10 +180,7 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
   // video
   return (
     <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-border">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">Video Parameters</h3>
-        <DocsLink />
-      </div>
+      <h3 className="text-sm font-medium text-foreground">Video Parameters</h3>
       <div className="space-y-2">
         <ParamLabel hint="Видео-модель определяет стиль, плавность движения и качество финального ролика.">
           Model
@@ -222,6 +219,9 @@ const ModalityParams = ({ modality, selectedModel, onModelChange }: ModalityPara
             <SelectItem value="15">15 seconds</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div className="pt-2 border-t border-border flex justify-center">
+        <DocsLink />
       </div>
     </div>
   );
