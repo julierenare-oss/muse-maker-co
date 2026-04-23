@@ -162,6 +162,10 @@ const DashboardPage = () => {
   const totalRequests = filtered.length;
   const totalInput = filtered.reduce((s, r) => s + r.inputTokens, 0);
   const totalOutput = filtered.reduce((s, r) => s + r.outputTokens, 0);
+  const totalCost = filtered.reduce(
+    (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+    0,
+  );
 
   const reqOverTime = useMemo(() => {
     const map = new Map<string, number>();
