@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   Activity, ArrowDownToLine, ArrowUpFromLine, Calendar as CalendarIcon,
-  Download, Filter, FileSpreadsheet, FileText, Users, Zap,
+  DollarSign, Download, Filter, FileSpreadsheet, FileText, Users, Zap,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
