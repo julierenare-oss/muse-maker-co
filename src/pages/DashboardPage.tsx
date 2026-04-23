@@ -279,8 +279,19 @@ const DashboardPage = () => {
       ["Total Requests", totalRequests],
       ["Total Input Tokens", totalInput],
       ["Total Output Tokens", totalOutput],
+      ["Estimated Cost (USD)", Number(totalCost.toFixed(4))],
+      [],
+      ["Note", "Costs are calculated using the same tariff sheet as the Billing section."],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
+
+    const pricingRows = [
+      ["Model", "Input $/1K tokens", "Output $/1K tokens", "Per request $"],
+      ...ALL_MODELS.map((m) => [
+        m, PRICING[m].inputPer1k, PRICING[m].outputPer1k, PRICING[m].perRequest ?? 0,
+      ]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pricingRows), "Pricing");
 
     const reqRows = [["Time", "Requests"], ...reqOverTime.map((r) => [r.label, r.requests])];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(reqRows), "Requests over Time");
@@ -298,22 +309,27 @@ const DashboardPage = () => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokRows), "Tokens over Time");
 
     const tokByModel = [
-      ["Model", "Input", "Output"],
-      ...tokensByModel.map((r) => [r.model, r.input, r.output]),
+      ["Model", "Requests", "Input", "Output", "Estimated Cost (USD)"],
+      ...tokensByModel.map((r) => [
+        r.model, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
+      ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokByModel), "Tokens by Model");
 
     const memberRows = [
-      ["Member", "Requests", "Input Tokens", "Output Tokens"],
-      ...byMember.map((r) => [r.member, r.requests, r.input, r.output]),
+      ["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
+      ...byMember.map((r) => [
+        r.member, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
+      ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memberRows), "By Member");
 
     const rawRows = [
-      ["Timestamp UTC", "Member", "Model", "Input Tokens", "Output Tokens"],
+      ["Timestamp UTC", "Member", "Model", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
       ...filtered.map((r) => [
         format(r.ts, "yyyy-MM-dd HH:mm"),
         r.member, r.model, r.inputTokens, r.outputTokens,
+        Number(costForRequest(r.model, r.inputTokens, r.outputTokens).toFixed(4)),
       ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rawRows), "Raw Data");
