@@ -891,6 +891,85 @@ const DashboardPage = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Cost by Model — matches Billing tariff */}
+          <Card className="card-glow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5" /> Estimated Cost by Model
+                <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
+                  Tariff: input/output $/1K + per-request fee
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Model</TableHead>
+                    <TableHead className="text-right">Requests</TableHead>
+                    <TableHead className="text-right">Input</TableHead>
+                    <TableHead className="text-right">Output</TableHead>
+                    <TableHead className="text-right">Input $/1K</TableHead>
+                    <TableHead className="text-right">Output $/1K</TableHead>
+                    <TableHead className="text-right">Per req $</TableHead>
+                    <TableHead className="text-right">Estimated Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tokensByModel.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground text-sm py-6">
+                        Нет данных по выбранным фильтрам
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <>
+                      {tokensByModel.map((r) => (
+                        <TableRow key={r.model}>
+                          <TableCell className="font-medium flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: MODEL_COLORS[r.model] }} />
+                            {r.model}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${PRICING[r.model].inputPer1k.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${PRICING[r.model].outputPer1k.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${(PRICING[r.model].perRequest ?? 0).toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums font-medium text-primary">
+                            {fmtUSD(r.cost)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="border-t-2 border-border bg-secondary/30">
+                        <TableCell className="font-semibold text-foreground">Total</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0))}
+                        </TableCell>
+                        <TableCell colSpan={3} />
+                        <TableCell className="text-right tabular-nums font-semibold gradient-text">
+                          {fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0))}
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
