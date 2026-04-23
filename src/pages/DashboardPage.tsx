@@ -206,11 +206,13 @@ const DashboardPage = () => {
   const tokensByModel = useMemo(() => {
     return ALL_MODELS.filter((m) => selectedModels.includes(m)).map((m) => {
       const rows = filtered.filter((r) => r.model === m);
-      return {
-        model: m,
-        input: rows.reduce((s, r) => s + r.inputTokens, 0),
-        output: rows.reduce((s, r) => s + r.outputTokens, 0),
-      };
+      const input = rows.reduce((s, r) => s + r.inputTokens, 0);
+      const output = rows.reduce((s, r) => s + r.outputTokens, 0);
+      const cost = rows.reduce(
+        (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+        0,
+      );
+      return { model: m, requests: rows.length, input, output, cost };
     });
   }, [filtered, selectedModels]);
 
@@ -227,7 +229,7 @@ const DashboardPage = () => {
     );
   }, [filtered, effGran]);
 
-  // Per-member breakdown
+  // Per-member breakdown (incl. estimated cost)
   const byMember = useMemo(() => {
     return ALL_MEMBERS.filter((m) => selectedMembers.includes(m)).map((member) => {
       const rows = filtered.filter((r) => r.member === member);
@@ -236,6 +238,10 @@ const DashboardPage = () => {
         requests: rows.length,
         input: rows.reduce((s, r) => s + r.inputTokens, 0),
         output: rows.reduce((s, r) => s + r.outputTokens, 0),
+        cost: rows.reduce(
+          (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+          0,
+        ),
       };
     });
   }, [filtered, selectedMembers]);
