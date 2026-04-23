@@ -61,6 +61,40 @@ const StatsPage = () => {
         </div>
       </div>
 
+      {/* Pricing reference — single source of truth used by Dashboard estimates */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-medium text-foreground">Pricing — applied tariff</h2>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Info className="h-3 w-3" />
+            Same tariff is used for the Dashboard cost estimates
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-xs text-muted-foreground">
+              <tr>
+                <th className="text-left px-5 py-2 font-medium">Model</th>
+                <th className="text-right px-5 py-2 font-medium">Input · per 1K tokens</th>
+                <th className="text-right px-5 py-2 font-medium">Output · per 1K tokens</th>
+                <th className="text-right px-5 py-2 font-medium">Per request</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {(Object.keys(PRICING) as ModelKey[]).map((m) => (
+                <tr key={m}>
+                  <td className="px-5 py-2.5 font-medium text-foreground">{m}</td>
+                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].inputPer1k)}</td>
+                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].outputPer1k)}</td>
+                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].perRequest ?? 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h2 className="text-sm font-medium text-foreground">Monthly Reports</h2>
