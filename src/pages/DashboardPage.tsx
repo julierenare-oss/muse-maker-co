@@ -665,7 +665,7 @@ const DashboardPage = () => {
 
         {/* ============ TAB 1: REQUESTS ============ */}
         <TabsContent value="requests" className="space-y-4 mt-4">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card className="card-glow">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
@@ -680,28 +680,44 @@ const DashboardPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="card-glow lg:col-span-2">
+            <Card className="card-glow">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Requests over Time
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5" /> Estimated Cost
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-[260px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                      label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                      label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <RTooltip contentStyle={tooltipStyle} />
-                    <Line type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2}
-                      dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <CardContent>
+                <div className="text-4xl font-bold text-primary tabular-nums">
+                  {fmtUSD(totalCost)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  по тарифу из раздела Billing
+                </p>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="card-glow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Requests over Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
+                    label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
+                    label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <RTooltip contentStyle={tooltipStyle} />
+                  <Line type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2}
+                    dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
           <Card className="card-glow">
             <CardHeader className="pb-2">
