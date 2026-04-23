@@ -591,6 +591,9 @@ const DashboardPage = () => {
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
             <Users className="h-3.5 w-3.5" /> Consumption by Member
+            <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
+              Estimated cost · matches Billing tariff
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -601,24 +604,45 @@ const DashboardPage = () => {
                 <TableHead className="text-right">Requests</TableHead>
                 <TableHead className="text-right">Input Tokens</TableHead>
                 <TableHead className="text-right">Output Tokens</TableHead>
+                <TableHead className="text-right">Estimated Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {byMember.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-6">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-6">
                     Нет данных по выбранным фильтрам
                   </TableCell>
                 </TableRow>
               ) : (
-                byMember.map((r) => (
-                  <TableRow key={r.member}>
-                    <TableCell className="font-medium">{r.member}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                <>
+                  {byMember.map((r) => (
+                    <TableRow key={r.member}>
+                      <TableCell className="font-medium">{r.member}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium text-primary">
+                        {fmtUSD(r.cost)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 border-border bg-secondary/30">
+                    <TableCell className="font-semibold text-foreground">Total</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.requests, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.input, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.output, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold gradient-text">
+                      {fmtUSD(byMember.reduce((s, r) => s + r.cost, 0))}
+                    </TableCell>
                   </TableRow>
-                ))
+                </>
               )}
             </TableBody>
           </Table>
