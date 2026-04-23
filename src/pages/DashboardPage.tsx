@@ -27,9 +27,9 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { type ModelKey, costForRequest, fmtUSD, PRICING } from "@/lib/pricing";
 
 // ---------------- Mock dataset ----------------
-type ModelKey = "MaaS-MJ" | "MaaS_image_1" | "MaaS_Cl_Opus";
 const ALL_MODELS: ModelKey[] = ["MaaS-MJ", "MaaS_image_1", "MaaS_Cl_Opus"];
 const MODEL_COLORS: Record<ModelKey, string> = {
   "MaaS-MJ": "hsl(165 100% 50%)",
