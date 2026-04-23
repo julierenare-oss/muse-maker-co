@@ -1,7 +1,8 @@
-import { Upload, Download, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, Loader2, DollarSign, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { PRICING, fmtUSD, type ModelKey } from "@/lib/pricing";
 
 interface MonthlyReport {
   id: string;
