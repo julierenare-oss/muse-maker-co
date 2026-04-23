@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   Activity, ArrowDownToLine, ArrowUpFromLine, Calendar as CalendarIcon,
-  Download, Filter, FileSpreadsheet, FileText, Users, Zap,
+  DollarSign, Download, Filter, FileSpreadsheet, FileText, Users, Zap,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
@@ -27,9 +27,9 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { type ModelKey, costForRequest, fmtUSD, PRICING } from "@/lib/pricing";
 
 // ---------------- Mock dataset ----------------
-type ModelKey = "MaaS-MJ" | "MaaS_image_1" | "MaaS_Cl_Opus";
 const ALL_MODELS: ModelKey[] = ["MaaS-MJ", "MaaS_image_1", "MaaS_Cl_Opus"];
 const MODEL_COLORS: Record<ModelKey, string> = {
   "MaaS-MJ": "hsl(165 100% 50%)",
@@ -162,6 +162,10 @@ const DashboardPage = () => {
   const totalRequests = filtered.length;
   const totalInput = filtered.reduce((s, r) => s + r.inputTokens, 0);
   const totalOutput = filtered.reduce((s, r) => s + r.outputTokens, 0);
+  const totalCost = filtered.reduce(
+    (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+    0,
+  );
 
   const reqOverTime = useMemo(() => {
     const map = new Map<string, number>();
@@ -202,11 +206,13 @@ const DashboardPage = () => {
   const tokensByModel = useMemo(() => {
     return ALL_MODELS.filter((m) => selectedModels.includes(m)).map((m) => {
       const rows = filtered.filter((r) => r.model === m);
-      return {
-        model: m,
-        input: rows.reduce((s, r) => s + r.inputTokens, 0),
-        output: rows.reduce((s, r) => s + r.outputTokens, 0),
-      };
+      const input = rows.reduce((s, r) => s + r.inputTokens, 0);
+      const output = rows.reduce((s, r) => s + r.outputTokens, 0);
+      const cost = rows.reduce(
+        (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+        0,
+      );
+      return { model: m, requests: rows.length, input, output, cost };
     });
   }, [filtered, selectedModels]);
 
@@ -223,7 +229,7 @@ const DashboardPage = () => {
     );
   }, [filtered, effGran]);
 
-  // Per-member breakdown
+  // Per-member breakdown (incl. estimated cost)
   const byMember = useMemo(() => {
     return ALL_MEMBERS.filter((m) => selectedMembers.includes(m)).map((member) => {
       const rows = filtered.filter((r) => r.member === member);
@@ -232,6 +238,10 @@ const DashboardPage = () => {
         requests: rows.length,
         input: rows.reduce((s, r) => s + r.inputTokens, 0),
         output: rows.reduce((s, r) => s + r.outputTokens, 0),
+        cost: rows.reduce(
+          (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
+          0,
+        ),
       };
     });
   }, [filtered, selectedMembers]);
@@ -269,8 +279,19 @@ const DashboardPage = () => {
       ["Total Requests", totalRequests],
       ["Total Input Tokens", totalInput],
       ["Total Output Tokens", totalOutput],
+      ["Estimated Cost (USD)", Number(totalCost.toFixed(4))],
+      [],
+      ["Note", "Costs are calculated using the same tariff sheet as the Billing section."],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
+
+    const pricingRows = [
+      ["Model", "Input $/1K tokens", "Output $/1K tokens", "Per request $"],
+      ...ALL_MODELS.map((m) => [
+        m, PRICING[m].inputPer1k, PRICING[m].outputPer1k, PRICING[m].perRequest ?? 0,
+      ]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pricingRows), "Pricing");
 
     const reqRows = [["Time", "Requests"], ...reqOverTime.map((r) => [r.label, r.requests])];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(reqRows), "Requests over Time");
@@ -288,22 +309,27 @@ const DashboardPage = () => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokRows), "Tokens over Time");
 
     const tokByModel = [
-      ["Model", "Input", "Output"],
-      ...tokensByModel.map((r) => [r.model, r.input, r.output]),
+      ["Model", "Requests", "Input", "Output", "Estimated Cost (USD)"],
+      ...tokensByModel.map((r) => [
+        r.model, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
+      ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokByModel), "Tokens by Model");
 
     const memberRows = [
-      ["Member", "Requests", "Input Tokens", "Output Tokens"],
-      ...byMember.map((r) => [r.member, r.requests, r.input, r.output]),
+      ["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
+      ...byMember.map((r) => [
+        r.member, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
+      ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memberRows), "By Member");
 
     const rawRows = [
-      ["Timestamp UTC", "Member", "Model", "Input Tokens", "Output Tokens"],
+      ["Timestamp UTC", "Member", "Model", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
       ...filtered.map((r) => [
         format(r.ts, "yyyy-MM-dd HH:mm"),
         r.member, r.model, r.inputTokens, r.outputTokens,
+        Number(costForRequest(r.model, r.inputTokens, r.outputTokens).toFixed(4)),
       ]),
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rawRows), "Raw Data");
@@ -332,10 +358,20 @@ const DashboardPage = () => {
     let y = 95;
     doc.text(`Total Requests: ${fmtNumber(totalRequests)}`, 40, y); y += 16;
     doc.text(`Total Input Tokens: ${fmtNumber(totalInput)}`, 40, y); y += 16;
-    doc.text(`Total Output Tokens: ${fmtNumber(totalOutput)}`, 40, y); y += 8;
+    doc.text(`Total Output Tokens: ${fmtNumber(totalOutput)}`, 40, y); y += 16;
+    doc.setTextColor(34, 139, 230);
+    doc.text(`Estimated Cost: ${fmtUSD(totalCost)}`, 40, y); y += 6;
+    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(8);
+    doc.text(
+      "Costs use the same tariff sheet as the Billing section.",
+      40, y + 8,
+    );
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
 
     autoTable(doc, {
-      startY: y + 8,
+      startY: y + 22,
       head: [["Model", "Requests", "Share %"]],
       body: reqByModel.map((r) => [r.model, fmtNumber(r.value), `${r.percent}%`]),
       headStyles: { fillColor: [34, 211, 238], textColor: 15 },
@@ -344,17 +380,50 @@ const DashboardPage = () => {
     });
 
     autoTable(doc, {
-      head: [["Model", "Input Tokens", "Output Tokens"]],
-      body: tokensByModel.map((r) => [r.model, fmtNumber(r.input), fmtNumber(r.output)]),
+      head: [["Model", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
+      body: tokensByModel.map((r) => [
+        r.model, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
+      ]),
+      foot: [[
+        "Total",
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0)),
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0)),
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0)),
+        fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0)),
+      ]],
       headStyles: { fillColor: [168, 85, 247], textColor: 255 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
 
     autoTable(doc, {
-      head: [["Member", "Requests", "Input Tokens", "Output Tokens"]],
-      body: byMember.map((r) => [r.member, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output)]),
+      head: [["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
+      body: byMember.map((r) => [
+        r.member, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
+      ]),
+      foot: [[
+        "Total",
+        fmtNumber(byMember.reduce((s, r) => s + r.requests, 0)),
+        fmtNumber(byMember.reduce((s, r) => s + r.input, 0)),
+        fmtNumber(byMember.reduce((s, r) => s + r.output, 0)),
+        fmtUSD(byMember.reduce((s, r) => s + r.cost, 0)),
+      ]],
       headStyles: { fillColor: [34, 211, 238], textColor: 15 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      margin: { left: 40, right: 40 },
+    });
+
+    autoTable(doc, {
+      head: [["Model", "Input $/1K", "Output $/1K", "Per request $"]],
+      body: ALL_MODELS.map((m) => [
+        m,
+        PRICING[m].inputPer1k.toFixed(4),
+        PRICING[m].outputPer1k.toFixed(4),
+        (PRICING[m].perRequest ?? 0).toFixed(4),
+      ]),
+      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
@@ -522,6 +591,9 @@ const DashboardPage = () => {
         <CardHeader className="pb-2">
           <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
             <Users className="h-3.5 w-3.5" /> Consumption by Member
+            <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
+              Estimated cost · matches Billing tariff
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -532,24 +604,45 @@ const DashboardPage = () => {
                 <TableHead className="text-right">Requests</TableHead>
                 <TableHead className="text-right">Input Tokens</TableHead>
                 <TableHead className="text-right">Output Tokens</TableHead>
+                <TableHead className="text-right">Estimated Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {byMember.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-6">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-6">
                     Нет данных по выбранным фильтрам
                   </TableCell>
                 </TableRow>
               ) : (
-                byMember.map((r) => (
-                  <TableRow key={r.member}>
-                    <TableCell className="font-medium">{r.member}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                <>
+                  {byMember.map((r) => (
+                    <TableRow key={r.member}>
+                      <TableCell className="font-medium">{r.member}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium text-primary">
+                        {fmtUSD(r.cost)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 border-border bg-secondary/30">
+                    <TableCell className="font-semibold text-foreground">Total</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.requests, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.input, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">
+                      {fmtNumber(byMember.reduce((s, r) => s + r.output, 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold gradient-text">
+                      {fmtUSD(byMember.reduce((s, r) => s + r.cost, 0))}
+                    </TableCell>
                   </TableRow>
-                ))
+                </>
               )}
             </TableBody>
           </Table>
@@ -572,7 +665,7 @@ const DashboardPage = () => {
 
         {/* ============ TAB 1: REQUESTS ============ */}
         <TabsContent value="requests" className="space-y-4 mt-4">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card className="card-glow">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
@@ -587,28 +680,44 @@ const DashboardPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="card-glow lg:col-span-2">
+            <Card className="card-glow">
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Requests over Time
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-3.5 w-3.5" /> Estimated Cost
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-[260px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                      label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                      label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                    <RTooltip contentStyle={tooltipStyle} />
-                    <Line type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2}
-                      dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <CardContent>
+                <div className="text-4xl font-bold text-primary tabular-nums">
+                  {fmtUSD(totalCost)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  по тарифу из раздела Billing
+                </p>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="card-glow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">
+                Requests over Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
+                    label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
+                    label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <RTooltip contentStyle={tooltipStyle} />
+                  <Line type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2}
+                    dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
           <Card className="card-glow">
             <CardHeader className="pb-2">
@@ -780,6 +889,85 @@ const DashboardPage = () => {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Cost by Model — matches Billing tariff */}
+          <Card className="card-glow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5" /> Estimated Cost by Model
+                <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
+                  Tariff: input/output $/1K + per-request fee
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Model</TableHead>
+                    <TableHead className="text-right">Requests</TableHead>
+                    <TableHead className="text-right">Input</TableHead>
+                    <TableHead className="text-right">Output</TableHead>
+                    <TableHead className="text-right">Input $/1K</TableHead>
+                    <TableHead className="text-right">Output $/1K</TableHead>
+                    <TableHead className="text-right">Per req $</TableHead>
+                    <TableHead className="text-right">Estimated Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tokensByModel.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground text-sm py-6">
+                        Нет данных по выбранным фильтрам
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <>
+                      {tokensByModel.map((r) => (
+                        <TableRow key={r.model}>
+                          <TableCell className="font-medium flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: MODEL_COLORS[r.model] }} />
+                            {r.model}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${PRICING[r.model].inputPer1k.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${PRICING[r.model].outputPer1k.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            ${(PRICING[r.model].perRequest ?? 0).toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums font-medium text-primary">
+                            {fmtUSD(r.cost)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="border-t-2 border-border bg-secondary/30">
+                        <TableCell className="font-semibold text-foreground">Total</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0))}
+                        </TableCell>
+                        <TableCell colSpan={3} />
+                        <TableCell className="text-right tabular-nums font-semibold gradient-text">
+                          {fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0))}
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
