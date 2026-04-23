@@ -358,10 +358,20 @@ const DashboardPage = () => {
     let y = 95;
     doc.text(`Total Requests: ${fmtNumber(totalRequests)}`, 40, y); y += 16;
     doc.text(`Total Input Tokens: ${fmtNumber(totalInput)}`, 40, y); y += 16;
-    doc.text(`Total Output Tokens: ${fmtNumber(totalOutput)}`, 40, y); y += 8;
+    doc.text(`Total Output Tokens: ${fmtNumber(totalOutput)}`, 40, y); y += 16;
+    doc.setTextColor(34, 139, 230);
+    doc.text(`Estimated Cost: ${fmtUSD(totalCost)}`, 40, y); y += 6;
+    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(8);
+    doc.text(
+      "Costs use the same tariff sheet as the Billing section.",
+      40, y + 8,
+    );
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
 
     autoTable(doc, {
-      startY: y + 8,
+      startY: y + 22,
       head: [["Model", "Requests", "Share %"]],
       body: reqByModel.map((r) => [r.model, fmtNumber(r.value), `${r.percent}%`]),
       headStyles: { fillColor: [34, 211, 238], textColor: 15 },
@@ -370,17 +380,50 @@ const DashboardPage = () => {
     });
 
     autoTable(doc, {
-      head: [["Model", "Input Tokens", "Output Tokens"]],
-      body: tokensByModel.map((r) => [r.model, fmtNumber(r.input), fmtNumber(r.output)]),
+      head: [["Model", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
+      body: tokensByModel.map((r) => [
+        r.model, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
+      ]),
+      foot: [[
+        "Total",
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0)),
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0)),
+        fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0)),
+        fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0)),
+      ]],
       headStyles: { fillColor: [168, 85, 247], textColor: 255 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
 
     autoTable(doc, {
-      head: [["Member", "Requests", "Input Tokens", "Output Tokens"]],
-      body: byMember.map((r) => [r.member, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output)]),
+      head: [["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
+      body: byMember.map((r) => [
+        r.member, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
+      ]),
+      foot: [[
+        "Total",
+        fmtNumber(byMember.reduce((s, r) => s + r.requests, 0)),
+        fmtNumber(byMember.reduce((s, r) => s + r.input, 0)),
+        fmtNumber(byMember.reduce((s, r) => s + r.output, 0)),
+        fmtUSD(byMember.reduce((s, r) => s + r.cost, 0)),
+      ]],
       headStyles: { fillColor: [34, 211, 238], textColor: 15 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      margin: { left: 40, right: 40 },
+    });
+
+    autoTable(doc, {
+      head: [["Model", "Input $/1K", "Output $/1K", "Per request $"]],
+      body: ALL_MODELS.map((m) => [
+        m,
+        PRICING[m].inputPer1k.toFixed(4),
+        PRICING[m].outputPer1k.toFixed(4),
+        (PRICING[m].perRequest ?? 0).toFixed(4),
+      ]),
+      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
