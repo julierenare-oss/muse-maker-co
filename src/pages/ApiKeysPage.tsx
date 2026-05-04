@@ -89,6 +89,9 @@ const SECTIONS: Section[] = [
   },
 ];
 
+const UNIFIED_API_KEY = "nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c";
+const UNIFIED_KEY_CREATED = "2026-03-01";
+
 const maskKey = (key: string) => key.slice(0, 12) + "•".repeat(20);
 
 const ApiKeysPage = () => {
