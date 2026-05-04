@@ -1,90 +1,221 @@
 import { useState } from "react";
-import { Plus, Copy, Eye, EyeOff, Trash2, Key, Construction } from "lucide-react";
+import { Copy, Eye, EyeOff, Key, FileText, Type, Image as ImageIcon, Video, ExternalLink, Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
-interface ApiKey {
+type Endpoint = {
   id: string;
-  name: string;
-  key: string;
+  label: string;
+  url: string;
+  apiKey: string;
   created: string;
-  lastUsed: string;
-}
+};
 
-const mockKeys: ApiKey[] = [
-  { id: "1", name: "Production", key: "nxg_prod_sk_1a2b3c4d5e6f7g8h9i0j", created: "2026-03-01", lastUsed: "2026-03-23" },
-  { id: "2", name: "Development", key: "nxg_dev_sk_9z8y7x6w5v4u3t2s1r0q", created: "2026-03-10", lastUsed: "2026-03-22" },
+type Section = {
+  id: string;
+  title: string;
+  description: string;
+  icon: typeof Type;
+  endpoints: Endpoint[];
+};
+
+const SECTIONS: Section[] = [
+  {
+    id: "text",
+    title: "Text models",
+    description: "Единый эндпойнт для всех текстовых моделей (Claude, GPT, Llama и др.).",
+    icon: Type,
+    endpoints: [
+      {
+        id: "text-unified",
+        label: "Unified Text Endpoint",
+        url: "https://api.nexagen.ai/v1/conversations/text",
+        apiKey: "nxg_text_sk_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c",
+        created: "2026-03-01",
+      },
+    ],
+  },
+  {
+    id: "image",
+    title: "Image models",
+    description: "Отдельный эндпойнт и ключ для каждой провайдерской модели генерации изображений.",
+    icon: ImageIcon,
+    endpoints: [
+      {
+        id: "img-mj",
+        label: "MaaS-MJ (Midjourney)",
+        url: "https://api.nexagen.ai/v1/conversations/image/midjourney",
+        apiKey: "nxg_img_mj_sk_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d",
+        created: "2026-03-04",
+      },
+      {
+        id: "img-gpt",
+        label: "MaaS_image_1 (ChatGPT Image)",
+        url: "https://api.nexagen.ai/v1/conversations/image/gpt-image",
+        apiKey: "nxg_img_gpt_sk_9z8y7x6w5v4u3t2s1r0q9p8o7n6m5l4k",
+        created: "2026-03-12",
+      },
+    ],
+  },
+  {
+    id: "video",
+    title: "Video models",
+    description: "Отдельные эндпойнты и ключи для каждой видеомодели.",
+    icon: Video,
+    endpoints: [
+      {
+        id: "vid-sora",
+        label: "MaaS_video_sora",
+        url: "https://api.nexagen.ai/v1/conversations/video/sora",
+        apiKey: "nxg_vid_sora_sk_3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f",
+        created: "2026-03-15",
+      },
+      {
+        id: "vid-veo",
+        label: "MaaS_video_veo",
+        url: "https://api.nexagen.ai/v1/conversations/video/veo",
+        apiKey: "nxg_vid_veo_sk_4d6e8f0a2b4c6d8e0f2a4b6c8d0e2f4a",
+        created: "2026-03-18",
+      },
+      {
+        id: "vid-runway",
+        label: "MaaS_video_runway",
+        url: "https://api.nexagen.ai/v1/conversations/video/runway",
+        apiKey: "nxg_vid_rw_sk_5e7f9a1b3c5d7e9f1a3b5c7d9e1f3a5b",
+        created: "2026-03-20",
+      },
+    ],
+  },
 ];
 
+const maskKey = (key: string) => key.slice(0, 12) + "•".repeat(20);
+
 const ApiKeysPage = () => {
-  const [showKey, setShowKey] = useState<Record<string, boolean>>({});
+  const [showAll, setShowAll] = useState(false);
+  const [shown, setShown] = useState<Record<string, boolean>>({});
+  const [copied, setCopied] = useState<string | null>(null);
 
-  const toggleShow = (id: string) => setShowKey((prev) => ({ ...prev, [id]: !prev[id] }));
+  const isVisible = (id: string) => showAll || !!shown[id];
+  const toggleOne = (id: string) => setShown((s) => ({ ...s, [id]: !s[id] }));
 
-  const maskKey = (key: string) => key.slice(0, 12) + "••••••••••••";
+  const copy = async (value: string, id: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(id);
+    toast.success("Скопировано в буфер обмена");
+    setTimeout(() => setCopied((c) => (c === id ? null : c)), 1200);
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <Alert className="border-primary/30 bg-primary/5">
-        <Construction className="h-4 w-4 text-primary" />
-        <AlertDescription className="text-sm text-muted-foreground">
-          🚧 This page is under development. Full functionality coming soon.
-        </AlertDescription>
-      </Alert>
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-foreground">API Keys</h1>
-          <p className="text-sm text-muted-foreground">Manage API keys for direct integration</p>
+          <p className="text-sm text-muted-foreground">
+            Эндпойнты и ключи для прямой интеграции с MaaS API.
+          </p>
         </div>
-        <Button variant="glow">
-          <Plus className="h-4 w-4 mr-1" />
-          Create Key
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/app/docs">
+              <FileText className="h-4 w-4 mr-1" />
+              Документация
+              <ExternalLink className="h-3 w-3 ml-1 opacity-60" />
+            </Link>
+          </Button>
+          <Button variant="glass" size="sm" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+            {showAll ? "Скрыть все ключи" : "Показать все ключи"}
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-5">
-        <p className="text-sm text-muted-foreground mb-4">
-          Use these keys to access the API directly without the web interface. See the{" "}
-          <span className="text-primary cursor-pointer hover:underline">documentation</span> for integration details.
-        </p>
-        <div className="text-xs font-mono text-muted-foreground bg-secondary rounded-lg p-3">
-          Base URL: https://api.nexagen.ai/v1
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+          <span className="text-foreground/70">Base URL:</span>
+          <code className="bg-secondary rounded px-2 py-1">https://api.nexagen.ai/v1</code>
+          <span className="ml-auto text-[11px] uppercase tracking-wide text-muted-foreground">
+            Header: <span className="text-primary">Authorization: Bearer &lt;key&gt;</span> · <span className="text-primary">X-Project-ID: 1</span>
+          </span>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {mockKeys.map((apiKey) => (
-          <div
-            key={apiKey.id}
-            className="bg-card border border-border rounded-xl p-4 group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Key className="h-5 w-5 text-primary" />
+      {SECTIONS.map((section) => {
+        const Icon = section.icon;
+        return (
+          <section key={section.id} className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Icon className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{apiKey.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <code className="text-xs font-mono text-muted-foreground">
-                    {showKey[apiKey.id] ? apiKey.key : maskKey(apiKey.key)}
-                  </code>
-                  <button onClick={() => toggleShow(apiKey.id)} className="text-muted-foreground hover:text-foreground">
-                    {showKey[apiKey.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Created {apiKey.created} · Last used {apiKey.lastUsed}
-                </p>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">{section.title}</h2>
+                <p className="text-xs text-muted-foreground">{section.description}</p>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon"><Copy className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-              </div>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {section.endpoints.length} {section.endpoints.length === 1 ? "endpoint" : "endpoints"}
+              </span>
             </div>
-          </div>
-        ))}
-      </div>
+
+            <div className="space-y-2">
+              {section.endpoints.map((ep) => (
+                <div
+                  key={ep.id}
+                  className="bg-card border border-border rounded-xl p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Key className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm font-medium text-foreground truncate">{ep.label}</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Создан: {ep.created}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-[100px_1fr_auto] items-center">
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Endpoint</span>
+                    <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
+                      {ep.url}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copy(ep.url, ep.id + "-url")}
+                      title="Копировать URL"
+                    >
+                      {copied === ep.id + "-url" ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-[100px_1fr_auto_auto] items-center">
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key</span>
+                    <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
+                      {isVisible(ep.id) ? ep.apiKey : maskKey(ep.apiKey)}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleOne(ep.id)}
+                      title={isVisible(ep.id) ? "Скрыть ключ" : "Показать ключ"}
+                    >
+                      {isVisible(ep.id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copy(ep.apiKey, ep.id + "-key")}
+                      title="Копировать ключ"
+                    >
+                      {copied === ep.id + "-key" ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 };
