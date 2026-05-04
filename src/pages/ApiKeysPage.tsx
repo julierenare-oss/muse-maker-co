@@ -89,6 +89,9 @@ const SECTIONS: Section[] = [
   },
 ];
 
+const UNIFIED_API_KEY = "nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c";
+const UNIFIED_KEY_CREATED = "2026-03-01";
+
 const maskKey = (key: string) => key.slice(0, 12) + "•".repeat(20);
 
 const ApiKeysPage = () => {
@@ -130,13 +133,46 @@ const ApiKeysPage = () => {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-4">
-        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
           <span className="text-foreground/70">Base URL:</span>
           <code className="bg-secondary rounded px-2 py-1">https://api.nexagen.ai/v1</code>
           <span className="ml-auto text-[11px] uppercase tracking-wide text-muted-foreground">
             Header: <span className="text-primary">Authorization: Bearer &lt;key&gt;</span> · <span className="text-primary">X-Project-ID: 1</span>
           </span>
+        </div>
+
+        <div className="border-t border-border pt-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+            <div className="flex items-center gap-2">
+              <Key className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Unified API Key</span>
+              <span className="text-[11px] text-muted-foreground">— используется для всех эндпойнтов</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground">Создан: {UNIFIED_KEY_CREATED}</span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[100px_1fr_auto_auto] items-center">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key</span>
+            <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
+              {isVisible("unified") ? UNIFIED_API_KEY : maskKey(UNIFIED_API_KEY)}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => toggleOne("unified")}
+              title={isVisible("unified") ? "Скрыть ключ" : "Показать ключ"}
+            >
+              {isVisible("unified") ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => copy(UNIFIED_API_KEY, "unified-key")}
+              title="Копировать ключ"
+            >
+              {copied === "unified-key" ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -188,28 +224,6 @@ const ApiKeysPage = () => {
                     </Button>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-[100px_1fr_auto_auto] items-center">
-                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key</span>
-                    <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
-                      {isVisible(ep.id) ? ep.apiKey : maskKey(ep.apiKey)}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleOne(ep.id)}
-                      title={isVisible(ep.id) ? "Скрыть ключ" : "Показать ключ"}
-                    >
-                      {isVisible(ep.id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => copy(ep.apiKey, ep.id + "-key")}
-                      title="Копировать ключ"
-                    >
-                      {copied === ep.id + "-key" ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>
