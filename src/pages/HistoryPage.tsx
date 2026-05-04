@@ -34,7 +34,7 @@ const HistoryPage = () => {
 
   useEffect(() => {
     fetchConversations()
-      .then(setConversations)
+      .then((items) => setConversations((items ?? []).filter((c: any) => c && c.uuid)))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
