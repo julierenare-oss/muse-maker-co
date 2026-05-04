@@ -34,7 +34,7 @@ const HistoryPage = () => {
 
   useEffect(() => {
     fetchConversations()
-      .then(setConversations)
+      .then((items) => setConversations((items ?? []).filter((c: any) => c && c.uuid)))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -115,7 +115,7 @@ const HistoryPage = () => {
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary text-xs">
                         {label}
                       </span>
-                      <span className="ml-2">{conv.uuid.slice(0, 8)}…</span>
+                      <span className="ml-2">{conv.uuid ? `${conv.uuid.slice(0, 8)}…` : ""}</span>
                     </p>
                   </div>
                 </button>
