@@ -24,12 +24,12 @@ const SECTIONS: Section[] = [
   {
     id: "text",
     title: "Text models",
-    description: "Единый эндпойнт для всех текстовых моделей (Claude, GPT, Llama и др.).",
+    description: "Единый эндпойнт для всех текстовых моделей.",
     icon: Type,
     endpoints: [
       {
         id: "text-unified",
-        label: "Unified Text Endpoint",
+        label: "MaaS_text_1",
         url: "https://api.nexagen.ai/v1/conversations/text",
         apiKey: "nxg_text_sk_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c",
         created: "2026-03-01",
@@ -39,20 +39,20 @@ const SECTIONS: Section[] = [
   {
     id: "image",
     title: "Image models",
-    description: "Отдельный эндпойнт и ключ для каждой провайдерской модели генерации изображений.",
+    description: "Отдельный эндпойнт для каждой модели генерации изображений.",
     icon: ImageIcon,
     endpoints: [
       {
         id: "img-mj",
-        label: "MaaS-MJ (Midjourney)",
-        url: "https://api.nexagen.ai/v1/conversations/image/midjourney",
+        label: "MaaS_image_1",
+        url: "https://api.nexagen.ai/v1/conversations/image/m1",
         apiKey: "nxg_img_mj_sk_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d",
         created: "2026-03-04",
       },
       {
         id: "img-gpt",
-        label: "MaaS_image_1 (ChatGPT Image)",
-        url: "https://api.nexagen.ai/v1/conversations/image/gpt-image",
+        label: "MaaS_image_2",
+        url: "https://api.nexagen.ai/v1/conversations/image/m2",
         apiKey: "nxg_img_gpt_sk_9z8y7x6w5v4u3t2s1r0q9p8o7n6m5l4k",
         created: "2026-03-12",
       },
@@ -61,27 +61,27 @@ const SECTIONS: Section[] = [
   {
     id: "video",
     title: "Video models",
-    description: "Отдельные эндпойнты и ключи для каждой видеомодели.",
+    description: "Отдельные эндпойнты для каждой видеомодели.",
     icon: Video,
     endpoints: [
       {
         id: "vid-sora",
-        label: "MaaS_video_sora",
-        url: "https://api.nexagen.ai/v1/conversations/video/sora",
+        label: "MaaS_video_1",
+        url: "https://api.nexagen.ai/v1/conversations/video/v1",
         apiKey: "nxg_vid_sora_sk_3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f",
         created: "2026-03-15",
       },
       {
         id: "vid-veo",
-        label: "MaaS_video_veo",
-        url: "https://api.nexagen.ai/v1/conversations/video/veo",
+        label: "MaaS_video_2",
+        url: "https://api.nexagen.ai/v1/conversations/video/v2",
         apiKey: "nxg_vid_veo_sk_4d6e8f0a2b4c6d8e0f2a4b6c8d0e2f4a",
         created: "2026-03-18",
       },
       {
         id: "vid-runway",
-        label: "MaaS_video_runway",
-        url: "https://api.nexagen.ai/v1/conversations/video/runway",
+        label: "MaaS_video_3",
+        url: "https://api.nexagen.ai/v1/conversations/video/v3",
         apiKey: "nxg_vid_rw_sk_5e7f9a1b3c5d7e9f1a3b5c7d9e1f3a5b",
         created: "2026-03-20",
       },
