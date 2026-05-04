@@ -224,28 +224,6 @@ const ApiKeysPage = () => {
                     </Button>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-[100px_1fr_auto_auto] items-center">
-                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">API Key</span>
-                    <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
-                      {isVisible(ep.id) ? ep.apiKey : maskKey(ep.apiKey)}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleOne(ep.id)}
-                      title={isVisible(ep.id) ? "Скрыть ключ" : "Показать ключ"}
-                    >
-                      {isVisible(ep.id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => copy(ep.apiKey, ep.id + "-key")}
-                      title="Копировать ключ"
-                    >
-                      {copied === ep.id + "-key" ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>
