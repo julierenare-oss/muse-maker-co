@@ -1,10 +1,7 @@
 import { useState } from "react";
 import {
   Copy,
-  Eye,
-  EyeOff,
   Key,
-  FileText,
   Type,
   Image as ImageIcon,
   Video,
@@ -13,6 +10,7 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -38,29 +35,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 
 type ApiKey = {
   id: string;
   name: string;
-  value: string;
+  masked: string; // stored masked: first 4 + ... + last 4
   created: string;
   expires: string;
 };
 
-type Endpoint = {
-  id: string;
-  label: string;
-  url: string;
-};
-
-type Section = {
-  id: string;
-  title: string;
-  description: string;
-  icon: typeof Type;
-  endpoints: Endpoint[];
-};
+type Endpoint = { id: string; label: string; url: string };
+type Section = { id: string; title: string; icon: typeof Type; endpoints: Endpoint[] };
 
 const KEY_PREFIX = "nxg_sk_live_";
 const TTL_MONTHS = 3;
@@ -78,26 +72,21 @@ const generateKeyValue = () => {
   for (let i = 0; i < 32; i++) s += chars[Math.floor(Math.random() * chars.length)];
   return KEY_PREFIX + s;
 };
-const newKey = (name: string): ApiKey => ({
-  id: "key_" + Math.random().toString(36).slice(2, 10),
-  name,
-  value: generateKeyValue(),
-  created: todayISO(),
-  expires: inMonthsISO(TTL_MONTHS),
-});
+const maskValue = (value: string) =>
+  value.length <= 8 ? value : `${value.slice(0, 4)}${"•".repeat(20)}${value.slice(-4)}`;
 
 const INITIAL_KEYS: ApiKey[] = [
   {
     id: "key_default",
     name: "Default",
-    value: "nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c",
+    masked: maskValue("nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c"),
     created: "2026-03-01",
     expires: "2026-06-01",
   },
   {
     id: "key_prod",
     name: "Production",
-    value: "nxg_sk_live_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d",
+    masked: maskValue("nxg_sk_live_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d"),
     created: "2026-04-10",
     expires: "2026-07-10",
   },
@@ -107,7 +96,6 @@ const SECTIONS: Section[] = [
   {
     id: "text",
     title: "Text models",
-    description: "Единый эндпойнт для всех текстовых моделей.",
     icon: Type,
     endpoints: [
       { id: "text-unified", label: "MaaS_text_1", url: "https://api.nexagen.ai/v1/conversations/text" },
@@ -116,7 +104,6 @@ const SECTIONS: Section[] = [
   {
     id: "image",
     title: "Image models",
-    description: "Отдельный эндпойнт для каждой модели генерации изображений.",
     icon: ImageIcon,
     endpoints: [
       { id: "img-1", label: "MaaS_image_1", url: "https://api.nexagen.ai/v1/conversations/image/m1" },
@@ -126,7 +113,6 @@ const SECTIONS: Section[] = [
   {
     id: "video",
     title: "Video models",
-    description: "Отдельные эндпойнты для каждой видеомодели.",
     icon: Video,
     endpoints: [
       { id: "vid-1", label: "MaaS_video_1", url: "https://api.nexagen.ai/v1/conversations/video/v1" },
@@ -136,8 +122,6 @@ const SECTIONS: Section[] = [
   },
 ];
 
-const maskKey = (key: string) => key.slice(0, 12) + "•".repeat(20);
-
 const isExpiringSoon = (iso: string) => {
   const diff = new Date(iso).getTime() - Date.now();
   return diff > 0 && diff < 14 * 24 * 60 * 60 * 1000;
@@ -146,51 +130,51 @@ const isExpired = (iso: string) => new Date(iso).getTime() <= Date.now();
 
 const ApiKeysPage = () => {
   const [keys, setKeys] = useState<ApiKey[]>(INITIAL_KEYS);
-  const [shown, setShown] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  // One-time reveal after creation/regeneration
+  const [reveal, setReveal] = useState<{ name: string; value: string } | null>(null);
 
   const limitReached = keys.length >= MAX_KEYS;
-
-  const isVisible = (id: string) => !!shown[id];
-  const toggleOne = (id: string) => setShown((s) => ({ ...s, [id]: !s[id] }));
 
   const copy = async (value: string, id: string) => {
     await navigator.clipboard.writeText(value);
     setCopied(id);
-    toast.success("Скопировано в буфер обмена");
+    toast.success("Скопировано");
     setTimeout(() => setCopied((c) => (c === id ? null : c)), 1200);
   };
 
   const handleCreate = () => {
     const name = newName.trim();
-    if (!name) {
-      toast.error("Введите имя ключа");
-      return;
-    }
-    if (limitReached) {
-      toast.error(`Достигнут лимит — максимум ${MAX_KEYS} ключей на аккаунт`);
-      return;
-    }
-    const k = newKey(name);
+    if (!name) return toast.error("Введите имя ключа");
+    if (limitReached) return toast.error(`Максимум ${MAX_KEYS} ключей на аккаунт`);
+    const value = generateKeyValue();
+    const k: ApiKey = {
+      id: "key_" + Math.random().toString(36).slice(2, 10),
+      name,
+      masked: maskValue(value),
+      created: todayISO(),
+      expires: inMonthsISO(TTL_MONTHS),
+    };
     setKeys((prev) => [...prev, k]);
-    setShown((s) => ({ ...s, [k.id]: true }));
     setNewName("");
     setCreateOpen(false);
-    toast.success("Ключ создан");
+    setReveal({ name, value });
   };
 
   const regenerateKey = (keyId: string) => {
+    const target = keys.find((k) => k.id === keyId);
+    if (!target) return;
+    const value = generateKeyValue();
     setKeys((prev) =>
       prev.map((k) =>
         k.id === keyId
-          ? { ...k, value: generateKeyValue(), created: todayISO(), expires: inMonthsISO(TTL_MONTHS) }
+          ? { ...k, masked: maskValue(value), created: todayISO(), expires: inMonthsISO(TTL_MONTHS) }
           : k,
       ),
     );
-    setShown((s) => ({ ...s, [keyId]: true }));
-    toast.success("Ключ перегенерирован");
+    setReveal({ name: target.name, value });
   };
 
   const deleteKey = (keyId: string) => {
@@ -203,36 +187,43 @@ const ApiKeysPage = () => {
       <div>
         <h1 className="text-xl font-semibold text-foreground">API Keys</h1>
         <p className="text-sm text-muted-foreground">
-          Ключи аккаунта работают со всеми эндпойнтами всех модальностей.
+          Один ключ — доступ ко всем эндпойнтам всех модальностей.
         </p>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-4 flex items-start gap-3">
-        <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-        <div className="text-xs text-muted-foreground leading-relaxed flex-1">
-          REST API · JSON · SSE для streaming. Аутентификация через Bearer-токен. Срок действия ключа — {TTL_MONTHS}{" "}
-          месяца. До {MAX_KEYS} ключей на аккаунт. Полная спецификация — в документации.
+      {/* Docs / quickstart */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="text-xs text-muted-foreground leading-relaxed flex-1 space-y-1">
+            <div>
+              <span className="text-foreground/80">Auth:</span>{" "}
+              <code className="bg-secondary rounded px-1.5 py-0.5 font-mono">
+                Authorization: Bearer &lt;key&gt;
+              </code>{" "}
+              ·{" "}
+              <code className="bg-secondary rounded px-1.5 py-0.5 font-mono">X-Project-ID: 1</code>
+            </div>
+            <div>
+              <span className="text-foreground/80">Base URL:</span>{" "}
+              <code className="bg-secondary rounded px-1.5 py-0.5 font-mono">
+                https://api.nexagen.ai/v1
+              </code>
+            </div>
+            <div>
+              REST · JSON · SSE для streaming. TTL ключа — {TTL_MONTHS} мес. Лимит — {MAX_KEYS}{" "}
+              ключей на аккаунт.
+            </div>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/app/docs">
+              Документация
+              <ExternalLink className="h-3 w-3 ml-1 opacity-60" />
+            </Link>
+          </Button>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/app/docs">
-            Документация
-            <ExternalLink className="h-3 w-3 ml-1 opacity-60" />
-          </Link>
-        </Button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-4">
-        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
-          <span className="text-foreground/70">Base URL:</span>
-          <code className="bg-secondary rounded px-2 py-1">https://api.nexagen.ai/v1</code>
-          <span className="ml-auto text-[11px] uppercase tracking-wide text-muted-foreground">
-            Header: <span className="text-primary">Authorization: Bearer &lt;key&gt;</span> ·{" "}
-            <span className="text-primary">X-Project-ID: 1</span>
-          </span>
-        </div>
-      </div>
-
-      {/* Keys section */}
+      {/* Keys table */}
       <section className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -241,21 +232,24 @@ const ApiKeysPage = () => {
           <div>
             <h2 className="text-base font-semibold text-foreground">Ключи аккаунта</h2>
             <p className="text-xs text-muted-foreground">
-              Один ключ — доступ ко всем эндпойнтам. Лимит: {keys.length} / {MAX_KEYS}.
+              Лимит: {keys.length} / {MAX_KEYS}.
             </p>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="ml-auto" disabled={limitReached}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Новый ключ
-              </Button>
-            </DialogTrigger>
+            <Button
+              size="sm"
+              className="ml-auto"
+              disabled={limitReached}
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Новый ключ
+            </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Создать API ключ</DialogTitle>
                 <DialogDescription>
-                  Имя помогает различать ключи (например, “Production”, “CI”, “Local”).
+                  Имя поможет различать ключи (например, «Production», «CI», «Local»).
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
@@ -281,113 +275,96 @@ const ApiKeysPage = () => {
           </Dialog>
         </div>
 
-        <div className="space-y-2">
-          {keys.length === 0 && (
-            <div className="bg-card border border-border rounded-xl p-6 text-sm text-muted-foreground text-center">
-              Нет активных ключей. Создайте первый, чтобы начать работу с API.
-            </div>
-          )}
-          {keys.map((k) => {
-            const expired = isExpired(k.expires);
-            const soon = isExpiringSoon(k.expires);
-            return (
-              <div key={k.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Key className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-foreground">{k.name}</span>
-                  {expired && (
-                    <span className="text-[10px] uppercase tracking-wide text-destructive border border-destructive/40 rounded px-1.5 py-0.5">
-                      Просрочен
-                    </span>
-                  )}
-                  {!expired && soon && (
-                    <span className="text-[10px] uppercase tracking-wide text-yellow-500 border border-yellow-500/40 rounded px-1.5 py-0.5">
-                      Скоро истечёт
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto] items-center">
-                  <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
-                    {isVisible(k.id) ? k.value : maskKey(k.value)}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => toggleOne(k.id)}
-                    title={isVisible(k.id) ? "Скрыть" : "Показать"}
-                  >
-                    {isVisible(k.id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copy(k.value, k.id + "-key")}
-                    title="Копировать"
-                  >
-                    {copied === k.id + "-key" ? (
-                      <Check className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => regenerateKey(k.id)}
-                    title="Перегенерировать"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Удалить"
-                        className="text-destructive hover:text-destructive"
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Имя</TableHead>
+                <TableHead>Ключ</TableHead>
+                <TableHead className="w-[120px]">Создан</TableHead>
+                <TableHead className="w-[160px]">Истекает</TableHead>
+                <TableHead className="w-[120px] text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {keys.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                    Нет активных ключей. Создайте первый, чтобы начать работу с API.
+                  </TableCell>
+                </TableRow>
+              )}
+              {keys.map((k) => {
+                const expired = isExpired(k.expires);
+                const soon = isExpiringSoon(k.expires);
+                return (
+                  <TableRow key={k.id}>
+                    <TableCell className="font-medium text-foreground">{k.name}</TableCell>
+                    <TableCell>
+                      <code className="text-xs font-mono text-foreground/90 bg-secondary rounded px-2 py-1">
+                        {k.masked}
+                      </code>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{k.created}</TableCell>
+                    <TableCell>
+                      <span
+                        className={
+                          "text-xs " +
+                          (expired
+                            ? "text-destructive font-medium"
+                            : soon
+                              ? "text-yellow-500 font-medium"
+                              : "text-muted-foreground")
+                        }
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Удалить ключ «{k.name}»?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Ключ будет немедленно отозван. Запросы с этим ключом перестанут работать.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteKey(k.id)}>Удалить</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-
-                <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
-                  <span>
-                    Создан: <span className="text-foreground/80">{k.created}</span>
-                  </span>
-                  <span className="opacity-40">·</span>
-                  <span>
-                    Истекает:{" "}
-                    <span
-                      className={
-                        expired
-                          ? "text-destructive font-medium"
-                          : soon
-                            ? "text-yellow-500 font-medium"
-                            : "text-foreground/80"
-                      }
-                    >
-                      {k.expires}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+                        {k.expires}
+                        {expired && " · просрочен"}
+                        {!expired && soon && " · скоро"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => regenerateKey(k.id)}
+                          title="Перегенерировать"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Удалить"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Удалить ключ «{k.name}»?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Ключ будет немедленно отозван. Запросы перестанут работать.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Отмена</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteKey(k.id)}>
+                                Удалить
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       </section>
 
@@ -400,12 +377,10 @@ const ApiKeysPage = () => {
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground">{section.title}</h2>
-                <p className="text-xs text-muted-foreground">{section.description}</p>
-              </div>
+              <h2 className="text-base font-semibold text-foreground">{section.title}</h2>
               <span className="ml-auto text-xs text-muted-foreground">
-                {section.endpoints.length} {section.endpoints.length === 1 ? "endpoint" : "endpoints"}
+                {section.endpoints.length}{" "}
+                {section.endpoints.length === 1 ? "endpoint" : "endpoints"}
               </span>
             </div>
 
@@ -413,11 +388,9 @@ const ApiKeysPage = () => {
               {section.endpoints.map((ep) => (
                 <div
                   key={ep.id}
-                  className="bg-card border border-border rounded-xl p-4 grid gap-2 sm:grid-cols-[140px_1fr_auto] items-center"
+                  className="bg-card border border-border rounded-xl p-3 grid gap-2 sm:grid-cols-[140px_1fr_auto] items-center"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm font-medium text-foreground truncate">{ep.label}</span>
-                  </div>
+                  <span className="text-sm font-medium text-foreground truncate">{ep.label}</span>
                   <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 truncate">
                     {ep.url}
                   </code>
@@ -439,6 +412,56 @@ const ApiKeysPage = () => {
           </section>
         );
       })}
+
+      {/* One-time reveal dialog */}
+      <Dialog open={!!reveal} onOpenChange={(o) => !o && setReveal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Сохраните ключ</DialogTitle>
+            <DialogDescription>
+              Это единственный раз, когда вы видите ключ полностью. После закрытия окна он будет
+              храниться только в зашифрованном виде.
+            </DialogDescription>
+          </DialogHeader>
+          {reveal && (
+            <div className="space-y-3">
+              <div className="text-xs text-muted-foreground">
+                Имя: <span className="text-foreground/90 font-medium">{reveal.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono text-foreground/90 bg-secondary rounded-md px-3 py-2 flex-1 break-all">
+                  {reveal.value}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copy(reveal.value, "reveal-" + reveal.value)}
+                >
+                  {copied === "reveal-" + reveal.value ? (
+                    <>
+                      <Check className="h-4 w-4 mr-1 text-primary" /> Скопировано
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-1" /> Копировать
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-start gap-2 text-xs text-yellow-500/90 bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  Не передавайте ключ публично и не храните его в клиентском коде. При утечке
+                  немедленно перегенерируйте.
+                </span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setReveal(null)}>Готово</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
