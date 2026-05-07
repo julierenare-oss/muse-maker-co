@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Plus, History, BarChart3, LayoutDashboard,
+  Plus, FolderKanban, BarChart3, LayoutDashboard,
   Settings, Users, Key, ChevronLeft, ChevronRight, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useChatStore } from "@/lib/chatStore";
 import { useAuthStore } from "@/lib/auth";
 
 const navItems = [
-  { icon: History, label: "History", path: "/app/history" },
+  { icon: FolderKanban, label: "Projects", path: "/app/history" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/app/dashboard" },
   { icon: BarChart3, label: "Billing", path: "/app/stats", ownerOnly: true },
   { icon: Users, label: "Team", path: "/app/team", ownerOnly: true },
