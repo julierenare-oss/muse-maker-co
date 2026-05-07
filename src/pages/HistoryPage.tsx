@@ -13,6 +13,7 @@ import {
   FolderMinus,
   ArrowLeft,
   History as HistoryIcon,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -87,7 +88,15 @@ const HistoryPage = () => {
   const [activeView, setActiveView] = useState<string | null>(null); // projectId | UNASSIGNED | null
 
   const navigate = useNavigate();
-  const { loadConversation, setModality } = useChatStore();
+  const { loadConversation, setModality, newConversation } = useChatStore();
+
+  const handleNewInProject = (projectId: string) => {
+    newConversation();
+    const newId = useChatStore.getState().conversationId;
+    assignConversation(newId, projectId);
+    setAssignments(getAssignments());
+    navigate("/app");
+  };
 
   useEffect(() => {
     fetchConversations()
@@ -281,15 +290,21 @@ const HistoryPage = () => {
             </div>
           </div>
           {!isUnassigned && project && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeleteProject(project.id)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Удалить проект
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="glow" size="sm" onClick={() => handleNewInProject(project.id)}>
+                <Plus className="h-4 w-4" />
+                Новый диалог
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteProject(project.id)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+                Удалить проект
+              </Button>
+            </div>
           )}
         </div>
 
