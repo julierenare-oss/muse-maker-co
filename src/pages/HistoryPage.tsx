@@ -9,11 +9,10 @@ import {
   Trash2,
   FolderPlus,
   Folder,
-  FolderOpen,
-  ChevronRight,
-  ChevronDown,
   FolderInput,
   FolderMinus,
+  ArrowLeft,
+  History as HistoryIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -65,6 +64,16 @@ const typeLabels: Record<string, string> = {
   video: "Video",
 };
 
+const UNASSIGNED = "__unassigned__";
+
+const formatDate = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString();
+  } catch {
+    return "";
+  }
+};
+
 const HistoryPage = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,9 +82,9 @@ const HistoryPage = () => {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [activeView, setActiveView] = useState<string | null>(null); // projectId | UNASSIGNED | null
 
   const navigate = useNavigate();
   const { loadConversation, setModality } = useChatStore();
@@ -138,9 +147,8 @@ const HistoryPage = () => {
   const handleCreateProject = () => {
     const name = newName.trim();
     if (!name) return;
-    const p = createProject(name);
+    createProject(name);
     setProjects(getProjects());
-    setExpanded((s) => ({ ...s, [p.id]: true }));
     setNewName("");
     setCreateOpen(false);
     toast.success("Проект создан");
@@ -150,6 +158,7 @@ const HistoryPage = () => {
     deleteProject(id);
     setProjects(getProjects());
     setAssignments(getAssignments());
+    if (activeView === id) setActiveView(null);
     toast.success("Проект удалён");
   };
 
@@ -157,8 +166,6 @@ const HistoryPage = () => {
     assignConversation(conv.uuid, projectId);
     setAssignments(getAssignments());
   };
-
-  const toggle = (id: string) => setExpanded((s) => ({ ...s, [id]: !s[id] }));
 
   const renderConversation = (conv: ConversationItem) => {
     const Icon = typeIcons[conv.type] || MessageSquare;
@@ -251,18 +258,65 @@ const HistoryPage = () => {
     );
   };
 
+  // Drill-down view
+  if (activeView) {
+    const isUnassigned = activeView === UNASSIGNED;
+    const project = projects.find((p) => p.id === activeView);
+    const items = isUnassigned ? grouped.unassigned : grouped.byProject[activeView] || [];
+    const title = isUnassigned ? "История" : project?.name || "Проект";
+
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setActiveView(null)}>
+              <ArrowLeft className="h-4 w-4" />
+              Назад
+            </Button>
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+              <p className="text-sm text-muted-foreground">
+                {items.length} {items.length === 1 ? "диалог" : "диалогов"}
+              </p>
+            </div>
+          </div>
+          {!isUnassigned && project && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteProject(project.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              Удалить проект
+            </Button>
+          )}
+        </div>
+
+        {items.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            Пока нет диалогов
+          </div>
+        ) : (
+          <div className="space-y-3">{items.map(renderConversation)}</div>
+        )}
+      </div>
+    );
+  }
+
+  // Grid view
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">History</h1>
+          <h1 className="text-xl font-semibold text-foreground">Projects</h1>
           <p className="text-sm text-muted-foreground">
-            Your past conversations, grouped by project
+            Группируйте диалоги по проектам
           </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button variant="glass" size="sm">
+            <Button variant="glow" size="sm">
               <FolderPlus className="h-4 w-4" />
               Новый проект
             </Button>
@@ -294,77 +348,73 @@ const HistoryPage = () => {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : conversations.length === 0 && projects.length === 0 ? (
+      ) : projects.length === 0 && grouped.unassigned.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          No conversations yet. Start a new chat!
+          Пока ничего нет. Создайте проект или начните новый диалог.
         </div>
       ) : (
-        <div className="space-y-6">
-          {projects.length > 0 && (
-            <div className="space-y-3">
-              {projects.map((p) => {
-                const items = grouped.byProject[p.id] || [];
-                const open = expanded[p.id] ?? true;
-                return (
-                  <div key={p.id} className="space-y-2">
-                    <div className="flex items-center gap-2 group">
-                      <button
-                        onClick={() => toggle(p.id)}
-                        className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
-                      >
-                        {open ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                        {open ? (
-                          <FolderOpen className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Folder className="h-4 w-4 text-primary" />
-                        )}
-                        <span>{p.name}</span>
-                        <span className="text-xs text-muted-foreground">({items.length})</span>
-                      </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-secondary text-muted-foreground hover:text-foreground">
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteProject(p.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Удалить проект
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    {open && (
-                      <div className="space-y-3 pl-6">
-                        {items.length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2">
-                            Пока нет диалогов. Перенесите сюда из списка ниже.
-                          </p>
-                        ) : (
-                          items.map(renderConversation)
-                        )}
-                      </div>
-                    )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {projects.map((p) => {
+            const count = (grouped.byProject[p.id] || []).length;
+            return (
+              <div
+                key={p.id}
+                className="group relative bg-card card-glow rounded-xl p-5 hover:bg-secondary/40 transition-colors cursor-pointer animate-slide-up"
+                onClick={() => setActiveView(p.id)}
+              >
+                <div className="flex items-start justify-between gap-2 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Folder className="h-5 w-5 text-primary" />
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-secondary text-muted-foreground hover:text-foreground"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteProject(p.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Удалить
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <h3 className="text-sm font-medium text-foreground truncate">{p.name}</h3>
+                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{formatDate(p.createdAt)}</span>
+                  <span>
+                    {count} {count === 1 ? "диалог" : "диалогов"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
 
           {grouped.unassigned.length > 0 && (
-            <div className="space-y-3">
-              {projects.length > 0 && (
-                <h2 className="text-sm font-medium text-muted-foreground">Без проекта</h2>
-              )}
-              {grouped.unassigned.map(renderConversation)}
+            <div
+              className="group relative bg-card card-glow rounded-xl p-5 hover:bg-secondary/40 transition-colors cursor-pointer animate-slide-up border-dashed"
+              onClick={() => setActiveView(UNASSIGNED)}
+            >
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                  <HistoryIcon className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
+              <h3 className="text-sm font-medium text-foreground truncate">История</h3>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Без проекта</span>
+                <span>
+                  {grouped.unassigned.length}{" "}
+                  {grouped.unassigned.length === 1 ? "диалог" : "диалогов"}
+                </span>
+              </div>
             </div>
           )}
         </div>
