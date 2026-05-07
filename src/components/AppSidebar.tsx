@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, FolderKanban, BarChart3, LayoutDashboard,
-  Settings, Users, Key, ChevronLeft, ChevronRight, LogOut
+  Settings, Users, Key, ChevronLeft, ChevronRight, LogOut,
+  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useChatStore } from "@/lib/chatStore";
+import { useChatStore, type ChatModality } from "@/lib/chatStore";
 import { useAuthStore } from "@/lib/auth";
+import { fetchConversations, fetchConversationMessages, type ConversationItem } from "@/lib/api";
 
 const navItems = [
   { icon: FolderKanban, label: "Projects", path: "/app/history" },
