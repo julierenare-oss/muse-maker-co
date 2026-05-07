@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, FolderKanban, BarChart3, LayoutDashboard,
-  Settings, Users, Key, ChevronLeft, ChevronRight, LogOut
+  Settings, Users, Key, ChevronLeft, ChevronRight, LogOut,
+  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useChatStore } from "@/lib/chatStore";
+import { useChatStore, type ChatModality } from "@/lib/chatStore";
 import { useAuthStore } from "@/lib/auth";
+import { fetchConversations, fetchConversationMessages, type ConversationItem } from "@/lib/api";
 
 const navItems = [
   { icon: FolderKanban, label: "Projects", path: "/app/history" },
@@ -18,13 +20,45 @@ const navItems = [
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
+const typeIcons = { text: MessageSquare, image: ImageIcon, video: Video } as const;
+
 const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [recent, setRecent] = useState<ConversationItem[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isOwner = true;
   const newConversation = useChatStore((s) => s.newConversation);
+  const loadConversation = useChatStore((s) => s.loadConversation);
+  const setModality = useChatStore((s) => s.setModality);
   const logout = useAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    if (!recentOpen || recent.length || recentLoading) return;
+    setRecentLoading(true);
+    fetchConversations()
+      .then((items) => setRecent((items ?? []).filter((c: any) => c?.uuid).slice(0, 10)))
+      .catch(console.error)
+      .finally(() => setRecentLoading(false));
+  }, [recentOpen]);
+
+  const handleOpenRecent = async (conv: ConversationItem) => {
+    setOpeningId(conv.uuid);
+    try {
+      const msgs = await fetchConversationMessages(conv.uuid);
+      const modality: ChatModality = conv.type || "text";
+      loadConversation(conv.uuid, msgs as any[], modality);
+      setModality(modality);
+      navigate("/app");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   return (
     <aside
@@ -88,6 +122,52 @@ const AppSidebar = () => {
               </button>
             );
           })}
+
+        {/* Recent dialogs */}
+        {!collapsed && (
+          <div className="pt-2 mt-2 border-t border-sidebar-border">
+            <button
+              onClick={() => setRecentOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            >
+              <span>Недавние диалоги</span>
+              <ChevronDown
+                className={cn("h-4 w-4 transition-transform", recentOpen && "rotate-180")}
+              />
+            </button>
+            {recentOpen && (
+              <div className="mt-1 space-y-0.5">
+                {recentLoading && (
+                  <div className="px-3 py-2 flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {!recentLoading && recent.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Пусто</div>
+                )}
+                {recent.map((c) => {
+                  const Icon = typeIcons[c.type] || MessageSquare;
+                  return (
+                    <button
+                      key={c.uuid}
+                      onClick={() => handleOpenRecent(c)}
+                      disabled={openingId === c.uuid}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-left"
+                      title={c.title}
+                    >
+                      {openingId === c.uuid ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      ) : (
+                        <Icon className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                      )}
+                      <span className="truncate">{c.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User */}
