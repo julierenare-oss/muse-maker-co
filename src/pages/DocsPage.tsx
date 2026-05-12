@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Type, Image as ImageIcon, Video } from "lucide-react";
+import { ArrowLeft, BookOpen, Type, Image as ImageIcon, Video, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DocsPage = () => {
@@ -35,6 +35,7 @@ const DocsPage = () => {
             <li><a href="#text" className="text-primary hover:underline">→ Параметры генерации текста</a></li>
             <li><a href="#image" className="text-primary hover:underline">→ Параметры генерации изображений</a></li>
             <li><a href="#video" className="text-primary hover:underline">→ Параметры генерации видео</a></li>
+            <li><a href="#api-keys" className="text-primary hover:underline">→ API Keys и интеграция</a></li>
             <li><a href="#tips" className="text-primary hover:underline">→ Советы и рекомендации</a></li>
           </ul>
         </nav>
@@ -261,6 +262,73 @@ const DocsPage = () => {
               <p className="text-sm text-muted-foreground">
                 Продолжительность ролика в секундах: 5, 10 или 15. Чем длиннее видео — тем выше затраты и время генерации.
               </p>
+            </article>
+          </div>
+        </section>
+
+        {/* API KEYS */}
+        <section id="api-keys" className="mb-12 scroll-mt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Key className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">API Keys и интеграция</h2>
+          </div>
+
+          <div className="space-y-6 text-muted-foreground">
+            <p>
+              Раздел <strong className="text-foreground">API Keys</strong> позволяет создавать ключи
+              для интеграции Nexagen в ваши приложения. Один ключ открывает доступ
+              ко всем эндпойнтам всех модальностей — отдельные ключи на текст/картинки/видео
+              создавать не нужно.
+            </p>
+
+            <article className="p-5 bg-card rounded-lg border border-border">
+              <h3 className="text-lg font-semibold mb-2 text-foreground">Лимиты и срок жизни</h3>
+              <ul className="text-sm space-y-1 ml-4 list-disc">
+                <li>На один аккаунт можно создать до <strong className="text-foreground">10 активных ключей</strong>.</li>
+                <li>Срок жизни ключа — <strong className="text-foreground">3 месяца</strong> с момента создания. После — ключ автоматически отзывается.</li>
+                <li>За 14 дней до истечения в таблице появляется жёлтая отметка «скоро».</li>
+              </ul>
+            </article>
+
+            <article className="p-5 bg-card rounded-lg border border-border">
+              <h3 className="text-lg font-semibold mb-2 text-foreground">Создание ключа</h3>
+              <ol className="text-sm space-y-1 ml-4 list-decimal">
+                <li>Нажмите <strong className="text-foreground">«Новый ключ»</strong> и задайте имя (например, «Production», «CI», «Local»).</li>
+                <li>В появившемся окне <strong className="text-foreground">скопируйте полное значение ключа</strong> — оно показывается только один раз.</li>
+                <li>После закрытия окна ключ хранится только в зашифрованном виде. Если вы его потеряли — воспользуйтесь регенерацией.</li>
+              </ol>
+            </article>
+
+            <article className="p-5 bg-card rounded-lg border border-border">
+              <h3 className="text-lg font-semibold mb-2 text-foreground">Регенерация и удаление</h3>
+              <ul className="text-sm space-y-1 ml-4 list-disc">
+                <li><strong className="text-foreground">Регенерация</strong> (иконка <code className="text-primary">↻</code>) — создаёт новое значение для существующего ключа и сбрасывает срок жизни ещё на 3 месяца. <em>Старое значение перестаёт работать немедленно.</em></li>
+                <li><strong className="text-foreground">Удаление</strong> (иконка корзины) — отзывает ключ навсегда. Все запросы с ним сразу будут возвращать ошибку 401.</li>
+              </ul>
+            </article>
+
+            <article className="p-5 bg-card rounded-lg border border-border">
+              <h3 className="text-lg font-semibold mb-2 text-foreground">Использование ключа</h3>
+              <p className="text-sm mb-2">В каждый запрос к API добавляйте два заголовка:</p>
+              <pre className="text-xs bg-secondary rounded-md p-3 font-mono overflow-x-auto">
+{`Authorization: Bearer nxg_sk_live_xxxxxxxx
+X-Project-ID: 1`}
+              </pre>
+              <p className="text-sm mt-3">
+                Базовый URL: <code className="text-primary">https://api.nexagen.ai/v1</code>.
+                Полный список эндпойнтов модальностей доступен на странице{" "}
+                <strong className="text-foreground">API Keys</strong> ниже таблицы ключей.
+              </p>
+            </article>
+
+            <article className="p-5 bg-card rounded-lg border border-border border-yellow-500/30">
+              <h3 className="text-lg font-semibold mb-2 text-foreground">Безопасность</h3>
+              <ul className="text-sm space-y-1 ml-4 list-disc">
+                <li>Никогда не публикуйте ключ в публичном репозитории и не встраивайте его в клиентский код браузера/мобильного приложения.</li>
+                <li>Храните ключи в переменных окружения или менеджере секретов на стороне сервера.</li>
+                <li>При подозрении на утечку — немедленно перегенерируйте или удалите ключ.</li>
+                <li>В таблице ключ всегда отображается в маске: первые 4 и последние 4 символа.</li>
+              </ul>
             </article>
           </div>
         </section>
