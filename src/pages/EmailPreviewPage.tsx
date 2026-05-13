@@ -156,7 +156,13 @@ const EmailPreviewPage = () => {
         <h1 className="text-2xl font-bold text-foreground mb-2">Email Templates Preview</h1>
         <p className="text-sm text-muted-foreground mb-6">Preview how email templates will look to recipients.</p>
 
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-6 flex-wrap">
+          <Button
+            variant={activeTemplate === "welcome" ? "glow" : "secondary"}
+            onClick={() => setActiveTemplate("welcome")}
+          >
+            Welcome / Set Password
+          </Button>
           <Button
             variant={activeTemplate === "invite" ? "glow" : "secondary"}
             onClick={() => setActiveTemplate("invite")}
@@ -177,14 +183,22 @@ const EmailPreviewPage = () => {
               <strong className="text-foreground">Subject:</strong>{" "}
               {activeTemplate === "invite"
                 ? "You've been invited to join Nexagen"
-                : "Reset your Nexagen password"}
+                : activeTemplate === "reset"
+                ? "Reset your Nexagen password"
+                : "Welcome to Nexagen — set your password"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               <strong className="text-foreground">From:</strong> noreply@nexagen.ai
             </p>
           </div>
           <div className="overflow-auto">
-            {activeTemplate === "invite" ? <InviteEmailTemplate /> : <ResetPasswordEmailTemplate />}
+            {activeTemplate === "invite" ? (
+              <InviteEmailTemplate />
+            ) : activeTemplate === "reset" ? (
+              <ResetPasswordEmailTemplate />
+            ) : (
+              <WelcomeEmailTemplate />
+            )}
           </div>
         </div>
       </div>
