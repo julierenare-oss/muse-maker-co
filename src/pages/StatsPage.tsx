@@ -1,8 +1,9 @@
-import { Upload, Download, FileSpreadsheet, Loader2, DollarSign, Info } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, Loader2, Receipt, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { PRICING, fmtUSD, type ModelKey } from "@/lib/pricing";
+import PriceListTab from "@/components/PriceListTab";
 
 interface MonthlyReport {
   id: string;
@@ -50,96 +51,79 @@ const StatsPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Billing</h1>
-          <p className="text-sm text-muted-foreground">Upload monthly usage reports and download past files</p>
-        </div>
-        <div>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" />
-          <Button variant="glow" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Report
-          </Button>
+          <p className="text-sm text-muted-foreground">Monthly invoices and the current MaaS price list</p>
         </div>
       </div>
 
-      {/* Pricing reference — single source of truth used by Dashboard estimates */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-medium text-foreground">Pricing — applied tariff</h2>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Info className="h-3 w-3" />
-            Same tariff is used for the Dashboard cost estimates
-          </span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/40 text-xs text-muted-foreground">
-              <tr>
-                <th className="text-left px-5 py-2 font-medium">Model</th>
-                <th className="text-right px-5 py-2 font-medium">Input · per 1K tokens</th>
-                <th className="text-right px-5 py-2 font-medium">Output · per 1K tokens</th>
-                <th className="text-right px-5 py-2 font-medium">Per request</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {(Object.keys(PRICING) as ModelKey[]).map((m) => (
-                <tr key={m}>
-                  <td className="px-5 py-2.5 font-medium text-foreground">{m}</td>
-                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].inputPer1k)}</td>
-                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].outputPer1k)}</td>
-                  <td className="px-5 py-2.5 text-right tabular-nums">{fmtUSD(PRICING[m].perRequest ?? 0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Tabs defaultValue="invoices" className="w-full">
+        <TabsList>
+          <TabsTrigger value="invoices" className="gap-2">
+            <Receipt className="h-4 w-4" /> Invoices
+          </TabsTrigger>
+          <TabsTrigger value="pricelist" className="gap-2">
+            <ListOrdered className="h-4 w-4" /> Price list
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-medium text-foreground">Monthly Reports</h2>
-        </div>
-        {reports.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">
-            No reports uploaded yet. Upload your first monthly usage file.
+        <TabsContent value="invoices" className="mt-5 space-y-4">
+          <div className="flex justify-end">
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv,.pdf" className="hidden" />
+            <Button variant="glow" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Report
+            </Button>
           </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {reports.map((report) => (
-              <div
-                key={report.id}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileSpreadsheet className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">
-                    {report.month} {report.year}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {report.fileName} · Uploaded {report.uploadedAt}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                  disabled={downloadingId === report.id}
-                  onClick={() => handleDownload(report)}
-                >
-                  {downloadingId === report.id ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Download className="h-3 w-3 mr-1" />
-                  )}
-                  Download
-                </Button>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="text-sm font-medium text-foreground">Monthly Reports</h2>
+            </div>
+            {reports.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No reports uploaded yet. Upload your first monthly usage file.
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-border">
+                {reports.map((report) => (
+                  <div
+                    key={report.id}
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors group"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileSpreadsheet className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {report.month} {report.year}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {report.fileName} · Uploaded {report.uploadedAt}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      disabled={downloadingId === report.id}
+                      onClick={() => handleDownload(report)}
+                    >
+                      {downloadingId === report.id ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-3 w-3 mr-1" />
+                      )}
+                      Download
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="pricelist" className="mt-5">
+          <PriceListTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
