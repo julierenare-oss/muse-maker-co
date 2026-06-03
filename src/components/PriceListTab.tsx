@@ -248,20 +248,61 @@ const PriceListTab = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((i, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="py-2"><span className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium">{i.type}</span></TableCell>
-                    <TableCell className="py-2 text-muted-foreground">{i.model}</TableCell>
-                    <TableCell className="py-2 font-mono text-xs">{i.product}</TableCell>
-                    <TableCell className="py-2 text-muted-foreground">{i.context ?? "—"}</TableCell>
-                    <TableCell className="py-2">{i.billing}</TableCell>
-                    <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
-                    <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
-                    <TableCell className="py-2 text-right tabular-nums font-medium">
-                      {fmt(vat === "vat" ? i.priceVat : i.price)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((i, idx) => {
+                  const spanFor = (keyFn: (x: Item) => string) => {
+                    const prev = filtered[idx - 1];
+                    if (prev && keyFn(prev) === keyFn(i)) return 0;
+                    let span = 1;
+                    for (let j = idx + 1; j < filtered.length; j++) {
+                      if (keyFn(filtered[j]) === keyFn(i)) span++;
+                      else break;
+                    }
+                    return span;
+                  };
+                  const typeKey = (x: Item) => `${x.type}`;
+                  const modelKey = (x: Item) => `${x.type}|${x.model}`;
+                  const productKey = (x: Item) => `${x.type}|${x.model}|${x.product}`;
+                  const contextKey = (x: Item) => `${x.type}|${x.model}|${x.product}|${x.context}`;
+
+                  const typeSpan = spanFor(typeKey);
+                  const modelSpan = spanFor(modelKey);
+                  const productSpan = spanFor(productKey);
+                  const contextSpan = spanFor(contextKey);
+
+                  return (
+                    <TableRow
+                      key={idx}
+                      className={modelSpan > 0 ? "border-t-2 border-t-border/70" : ""}
+                    >
+                      {typeSpan > 0 && (
+                        <TableCell rowSpan={typeSpan} className="py-2 align-top">
+                          <span className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-[11px] font-medium">{i.type}</span>
+                        </TableCell>
+                      )}
+                      {modelSpan > 0 && (
+                        <TableCell rowSpan={modelSpan} className="py-2 align-top font-medium text-foreground">
+                          {i.model}
+                        </TableCell>
+                      )}
+                      {productSpan > 0 && (
+                        <TableCell rowSpan={productSpan} className="py-2 align-top font-mono text-xs text-muted-foreground">
+                          {i.product}
+                        </TableCell>
+                      )}
+                      {contextSpan > 0 && (
+                        <TableCell rowSpan={contextSpan} className="py-2 align-top text-muted-foreground">
+                          {i.context ?? "—"}
+                        </TableCell>
+                      )}
+                      <TableCell className="py-2">{i.billing}</TableCell>
+                      <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
+                      <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
+                      <TableCell className="py-2 text-right tabular-nums font-medium">
+                        {fmt(vat === "vat" ? i.priceVat : i.price)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
