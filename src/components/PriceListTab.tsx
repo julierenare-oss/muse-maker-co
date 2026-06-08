@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Calendar, Download, Info, X } from "lucide-react";
+import { Search, Calendar, Download, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +51,7 @@ const PriceListTab = () => {
   const [type, setType] = useState<string>(ALL);
   const [model, setModel] = useState<string>(ALL);
   const [modality, setModality] = useState<string>(ALL);
-  const [vat, setVat] = useState<"net" | "vat">("net");
+  
 
   const { types, models, modalities } = useMemo(() => {
     const t = new Set<string>();
@@ -142,25 +142,10 @@ const PriceListTab = () => {
             Current
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Info className="h-3 w-3" />
-          Prices in USD. VAT column reflects 22% RU VAT applied at invoicing.
+        <div className="text-[11px] text-muted-foreground">
+          Prices in USD
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex rounded-md border border-border p-0.5">
-            <button
-              onClick={() => setVat("net")}
-              className={`px-2.5 py-1 text-xs rounded-sm transition ${vat === "net" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Without VAT
-            </button>
-            <button
-              onClick={() => setVat("vat")}
-              className={`px-2.5 py-1 text-xs rounded-sm transition ${vat === "vat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              With VAT
-            </button>
-          </div>
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Export CSV
@@ -235,15 +220,14 @@ const PriceListTab = () => {
                 <TableHead className="w-[140px]">Billing item</TableHead>
                 <TableHead className="w-[90px]">Modality</TableHead>
                 <TableHead className="w-[90px]">Unit</TableHead>
-                <TableHead className="w-[130px] text-right">
-                  Price {vat === "vat" ? "(VAT)" : ""}
-                </TableHead>
+                <TableHead className="w-[130px] text-right">Цена</TableHead>
+                <TableHead className="w-[130px] text-right">Цена с НДС (22%)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
                     No positions match the current filters.
                   </TableCell>
                 </TableRow>
@@ -298,7 +282,10 @@ const PriceListTab = () => {
                       <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
                       <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums font-medium">
-                        {fmt(vat === "vat" ? i.priceVat : i.price)}
+                        {fmt(i.price)}
+                      </TableCell>
+                      <TableCell className="py-2 text-right tabular-nums font-medium">
+                        {fmt(i.priceVat)}
                       </TableCell>
                     </TableRow>
                   );
