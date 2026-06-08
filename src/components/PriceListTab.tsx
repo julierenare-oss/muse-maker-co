@@ -282,7 +282,10 @@ const PriceListTab = () => {
                       <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
                       <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums font-medium">
-                        {fmt(vat === "vat" ? i.priceVat : i.price)}
+                        {fmt(i.price)}
+                      </TableCell>
+                      <TableCell className="py-2 text-right tabular-nums font-medium">
+                        {fmt(i.priceVat)}
                       </TableCell>
                     </TableRow>
                   );
