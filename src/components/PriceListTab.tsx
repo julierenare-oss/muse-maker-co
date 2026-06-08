@@ -142,9 +142,8 @@ const PriceListTab = () => {
             Current
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Info className="h-3 w-3" />
-          Prices in USD. VAT column reflects 22% RU VAT applied at invoicing.
+        <div className="text-[11px] text-muted-foreground">
+          Prices in USD
         </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex rounded-md border border-border p-0.5">
