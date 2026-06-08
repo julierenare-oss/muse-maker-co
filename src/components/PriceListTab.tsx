@@ -50,22 +50,18 @@ const PriceListTab = () => {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>(ALL);
   const [model, setModel] = useState<string>(ALL);
-  const [modality, setModality] = useState<string>(ALL);
   
 
-  const { types, models, modalities } = useMemo(() => {
+  const { types, models } = useMemo(() => {
     const t = new Set<string>();
     const m = new Set<string>();
-    const md = new Set<string>();
     items.forEach((i) => {
       if (i.type) t.add(i.type);
       if (i.model && (type === ALL || i.type === type)) m.add(i.model);
-      if (i.modality) md.add(i.modality);
     });
     return {
       types: [...t].sort(),
       models: [...m].sort(),
-      modalities: [...md].sort(),
     };
   }, [items, type]);
 
@@ -74,23 +70,21 @@ const PriceListTab = () => {
     return items.filter((i) => {
       if (type !== ALL && i.type !== type) return false;
       if (model !== ALL && i.model !== model) return false;
-      if (modality !== ALL && i.modality !== modality) return false;
       if (q) {
         const hay = `${i.product ?? ""} ${i.model ?? ""} ${i.type ?? ""} ${i.billing ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [items, search, type, model, modality]);
+  }, [items, search, type, model]);
 
   const resetFilters = () => {
     setSearch("");
     setType(ALL);
     setModel(ALL);
-    setModality(ALL);
   };
   const hasFilters =
-    !!search || type !== ALL || model !== ALL || modality !== ALL;
+    !!search || type !== ALL || model !== ALL;
 
   const exportCsv = () => {
     const header = [
@@ -99,7 +93,6 @@ const PriceListTab = () => {
       "Product",
       "Context",
       "Billing",
-      "Modality",
       "Unit",
       "Price USD",
       "Price USD (VAT)",
@@ -112,7 +105,6 @@ const PriceListTab = () => {
           i.product,
           i.context,
           i.billing,
-          i.modality,
           i.unit,
           i.price ?? "",
           i.priceVat ?? "",
@@ -164,7 +156,7 @@ const PriceListTab = () => {
             className="pl-9"
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-4">
           <Select value={type} onValueChange={(v) => { setType(v); setModel(ALL); }}>
             <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
@@ -173,21 +165,12 @@ const PriceListTab = () => {
             </SelectContent>
           </Select>
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-4">
           <Select value={model} onValueChange={setModel}>
             <SelectTrigger><SelectValue placeholder="Model" /></SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>All models</SelectItem>
               {models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="md:col-span-2">
-          <Select value={modality} onValueChange={setModality}>
-            <SelectTrigger><SelectValue placeholder="Modality" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All modalities</SelectItem>
-              {modalities.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -218,7 +201,6 @@ const PriceListTab = () => {
                 <TableHead>Product</TableHead>
                 <TableHead className="w-[90px]">Context</TableHead>
                 <TableHead className="w-[140px]">Billing item</TableHead>
-                <TableHead className="w-[90px]">Modality</TableHead>
                 <TableHead className="w-[90px]">Unit</TableHead>
                 <TableHead className="w-[130px] text-right">Цена</TableHead>
                 <TableHead className="w-[130px] text-right">Цена с НДС (22%)</TableHead>
@@ -227,7 +209,7 @@ const PriceListTab = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     No positions match the current filters.
                   </TableCell>
                 </TableRow>
@@ -279,7 +261,6 @@ const PriceListTab = () => {
                         </TableCell>
                       )}
                       <TableCell className="py-2">{i.billing}</TableCell>
-                      <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
                       <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums font-medium">
                         {fmt(i.price)}
