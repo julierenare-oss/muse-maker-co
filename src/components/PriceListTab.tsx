@@ -50,7 +50,6 @@ const PriceListTab = () => {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>(ALL);
   const [model, setModel] = useState<string>(ALL);
-  const [modality, setModality] = useState<string>(ALL);
   
 
   const { types, models, modalities } = useMemo(() => {
