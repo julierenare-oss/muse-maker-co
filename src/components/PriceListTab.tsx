@@ -146,20 +146,6 @@ const PriceListTab = () => {
           Prices in USD
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex rounded-md border border-border p-0.5">
-            <button
-              onClick={() => setVat("net")}
-              className={`px-2.5 py-1 text-xs rounded-sm transition ${vat === "net" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Without VAT
-            </button>
-            <button
-              onClick={() => setVat("vat")}
-              className={`px-2.5 py-1 text-xs rounded-sm transition ${vat === "vat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              With VAT
-            </button>
-          </div>
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Export CSV
