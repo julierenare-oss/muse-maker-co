@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Calendar, Download, Info, X } from "lucide-react";
+import { Search, Calendar, Download, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
