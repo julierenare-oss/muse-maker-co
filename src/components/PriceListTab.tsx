@@ -156,7 +156,7 @@ const PriceListTab = () => {
             className="pl-9"
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-4">
           <Select value={type} onValueChange={(v) => { setType(v); setModel(ALL); }}>
             <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
@@ -165,21 +165,12 @@ const PriceListTab = () => {
             </SelectContent>
           </Select>
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-4">
           <Select value={model} onValueChange={setModel}>
             <SelectTrigger><SelectValue placeholder="Model" /></SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>All models</SelectItem>
               {models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="md:col-span-2">
-          <Select value={modality} onValueChange={setModality}>
-            <SelectTrigger><SelectValue placeholder="Modality" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL}>All modalities</SelectItem>
-              {modalities.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -210,7 +201,6 @@ const PriceListTab = () => {
                 <TableHead>Product</TableHead>
                 <TableHead className="w-[90px]">Context</TableHead>
                 <TableHead className="w-[140px]">Billing item</TableHead>
-                <TableHead className="w-[90px]">Modality</TableHead>
                 <TableHead className="w-[90px]">Unit</TableHead>
                 <TableHead className="w-[130px] text-right">Цена</TableHead>
                 <TableHead className="w-[130px] text-right">Цена с НДС (22%)</TableHead>
@@ -219,7 +209,7 @@ const PriceListTab = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     No positions match the current filters.
                   </TableCell>
                 </TableRow>
@@ -271,7 +261,6 @@ const PriceListTab = () => {
                         </TableCell>
                       )}
                       <TableCell className="py-2">{i.billing}</TableCell>
-                      <TableCell className="py-2 text-muted-foreground">{i.modality}</TableCell>
                       <TableCell className="py-2 text-muted-foreground">{i.unit ?? "—"}</TableCell>
                       <TableCell className="py-2 text-right tabular-nums font-medium">
                         {fmt(i.price)}
