@@ -51,7 +51,7 @@ const PriceListTab = () => {
   const [type, setType] = useState<string>(ALL);
   const [model, setModel] = useState<string>(ALL);
   const [modality, setModality] = useState<string>(ALL);
-  const [vat, setVat] = useState<"net" | "vat">("net");
+  
 
   const { types, models, modalities } = useMemo(() => {
     const t = new Set<string>();
