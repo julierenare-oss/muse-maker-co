@@ -52,19 +52,16 @@ const PriceListTab = () => {
   const [model, setModel] = useState<string>(ALL);
   
 
-  const { types, models, modalities } = useMemo(() => {
+  const { types, models } = useMemo(() => {
     const t = new Set<string>();
     const m = new Set<string>();
-    const md = new Set<string>();
     items.forEach((i) => {
       if (i.type) t.add(i.type);
       if (i.model && (type === ALL || i.type === type)) m.add(i.model);
-      if (i.modality) md.add(i.modality);
     });
     return {
       types: [...t].sort(),
       models: [...m].sort(),
-      modalities: [...md].sort(),
     };
   }, [items, type]);
 
