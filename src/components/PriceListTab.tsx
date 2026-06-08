@@ -70,14 +70,13 @@ const PriceListTab = () => {
     return items.filter((i) => {
       if (type !== ALL && i.type !== type) return false;
       if (model !== ALL && i.model !== model) return false;
-      if (modality !== ALL && i.modality !== modality) return false;
       if (q) {
         const hay = `${i.product ?? ""} ${i.model ?? ""} ${i.type ?? ""} ${i.billing ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [items, search, type, model, modality]);
+  }, [items, search, type, model]);
 
   const resetFilters = () => {
     setSearch("");
