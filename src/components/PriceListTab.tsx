@@ -82,10 +82,9 @@ const PriceListTab = () => {
     setSearch("");
     setType(ALL);
     setModel(ALL);
-    setModality(ALL);
   };
   const hasFilters =
-    !!search || type !== ALL || model !== ALL || modality !== ALL;
+    !!search || type !== ALL || model !== ALL;
 
   const exportCsv = () => {
     const header = [
@@ -94,7 +93,6 @@ const PriceListTab = () => {
       "Product",
       "Context",
       "Billing",
-      "Modality",
       "Unit",
       "Price USD",
       "Price USD (VAT)",
@@ -107,7 +105,6 @@ const PriceListTab = () => {
           i.product,
           i.context,
           i.billing,
-          i.modality,
           i.unit,
           i.price ?? "",
           i.priceVat ?? "",
