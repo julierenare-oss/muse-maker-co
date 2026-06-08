@@ -219,10 +219,8 @@ const PriceListTab = () => {
                 <TableHead className="w-[90px]">Context</TableHead>
                 <TableHead className="w-[140px]">Billing item</TableHead>
                 <TableHead className="w-[90px]">Modality</TableHead>
-                <TableHead className="w-[90px]">Unit</TableHead>
-                <TableHead className="w-[130px] text-right">
-                  Price {vat === "vat" ? "(VAT)" : ""}
-                </TableHead>
+                <TableHead className="w-[130px] text-right">Цена</TableHead>
+                <TableHead className="w-[130px] text-right">Цена с НДС (22%)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
