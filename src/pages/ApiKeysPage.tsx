@@ -54,6 +54,10 @@ type ApiKey = {
   masked: string; // stored masked: first 4 + ... + last 4
   created: string;
   expires: string;
+  /** Monthly token limit; null = unlimited */
+  monthlyTokenLimit: number | null;
+  /** Mock usage in current month */
+  usedTokensMonth: number;
 };
 
 type Endpoint = { id: string; label: string; url: string };
@@ -78,6 +82,12 @@ const generateKeyValue = () => {
 const maskValue = (value: string) =>
   value.length <= 8 ? value : `${value.slice(0, 4)}${"•".repeat(20)}${value.slice(-4)}`;
 
+const fmtTokens = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`;
+  return String(n);
+};
+
 const INITIAL_KEYS: ApiKey[] = [
   {
     id: "key_default",
@@ -85,6 +95,8 @@ const INITIAL_KEYS: ApiKey[] = [
     masked: maskValue("nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c"),
     created: "2026-03-01",
     expires: "2026-06-01",
+    monthlyTokenLimit: 10_000_000,
+    usedTokensMonth: 2_340_000,
   },
   {
     id: "key_prod",
@@ -92,6 +104,8 @@ const INITIAL_KEYS: ApiKey[] = [
     masked: maskValue("nxg_sk_live_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d"),
     created: "2026-04-10",
     expires: "2026-07-10",
+    monthlyTokenLimit: 2_000_000,
+    usedTokensMonth: 480_000,
   },
 ];
 
