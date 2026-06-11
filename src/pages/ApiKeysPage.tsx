@@ -559,6 +559,46 @@ const ApiKeysPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit token limit dialog */}
+      <Dialog open={!!editingLimit} onOpenChange={(o) => !o && setEditingLimit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Лимит токенов · {editingLimit?.name}</DialogTitle>
+            <DialogDescription>
+              Месячный лимит обнуляется 1 числа. По достижении ключ возвращает 429, пока счётчик не
+              сбросится или вы не повысите лимит.
+            </DialogDescription>
+          </DialogHeader>
+          {editingLimit && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-limit">Лимит в месяц (млн токенов)</Label>
+              <Input
+                id="edit-limit"
+                type="number"
+                min="0"
+                step="0.1"
+                value={editingLimit.value}
+                onChange={(e) =>
+                  setEditingLimit({ ...editingLimit, value: e.target.value })
+                }
+                placeholder="например, 10"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveLimit();
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Пусто = без лимита.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingLimit(null)}>
+              Отмена
+            </Button>
+            <Button onClick={saveLimit}>Сохранить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
