@@ -352,9 +352,30 @@ const ApiKeysPage = () => {
                   </TableCell>
                 </TableRow>
               )}
+              <TableRow>
+                <TableHead className="w-[180px]">Имя</TableHead>
+                <TableHead>Ключ</TableHead>
+                <TableHead className="w-[220px]">Лимит токенов / мес</TableHead>
+                <TableHead className="w-[110px]">Создан</TableHead>
+                <TableHead className="w-[150px]">Истекает</TableHead>
+                <TableHead className="w-[120px] text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {keys.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                    Нет активных ключей. Создайте первый, чтобы начать работу с API.
+                  </TableCell>
+                </TableRow>
+              )}
               {keys.map((k) => {
                 const expired = isExpired(k.expires);
                 const soon = isExpiringSoon(k.expires);
+                const limit = k.monthlyTokenLimit;
+                const used = k.usedTokensMonth;
+                const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const overSoon = limit && pct >= 80;
                 return (
                   <TableRow key={k.id}>
                     <TableCell className="font-medium text-foreground">{k.name}</TableCell>
@@ -362,6 +383,40 @@ const ApiKeysPage = () => {
                       <code className="text-xs font-mono text-foreground/90 bg-secondary rounded px-2 py-1">
                         {k.masked}
                       </code>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingLimit({
+                            id: k.id,
+                            name: k.name,
+                            value: limit ? String(limit / 1_000_000) : "",
+                          })
+                        }
+                        className="w-full text-left space-y-1 group"
+                        title="Изменить лимит"
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          {limit ? (
+                            <>
+                              <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className={overSoon ? "text-yellow-500 font-medium" : "text-foreground/90"}>
+                                {fmtTokens(used)} / {fmtTokens(limit)}
+                              </span>
+                              <span className="text-muted-foreground ml-auto">{pct}%</span>
+                            </>
+                          ) : (
+                            <>
+                              <InfinityIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground group-hover:text-foreground/90">
+                                Без лимита
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {limit && <Progress value={pct} className="h-1" />}
+                      </button>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{k.created}</TableCell>
                     <TableCell>
