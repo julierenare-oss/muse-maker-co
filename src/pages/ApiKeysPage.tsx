@@ -150,10 +150,21 @@ const ApiKeysPage = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newLimit, setNewLimit] = useState<string>(""); // millions of tokens, empty = unlimited
   // One-time reveal after creation/regeneration
   const [reveal, setReveal] = useState<{ name: string; value: string } | null>(null);
+  // Edit limit dialog
+  const [editingLimit, setEditingLimit] = useState<{ id: string; name: string; value: string } | null>(null);
 
   const limitReached = keys.length >= MAX_KEYS;
+
+  const parseLimitMillions = (raw: string): number | null => {
+    const t = raw.trim();
+    if (!t) return null;
+    const n = Number(t.replace(",", "."));
+    if (!isFinite(n) || n <= 0) return null;
+    return Math.round(n * 1_000_000);
+  };
 
   const copy = async (value: string, id: string) => {
     await navigator.clipboard.writeText(value);
@@ -173,9 +184,12 @@ const ApiKeysPage = () => {
       masked: maskValue(value),
       created: todayISO(),
       expires: inMonthsISO(TTL_MONTHS),
+      monthlyTokenLimit: parseLimitMillions(newLimit),
+      usedTokensMonth: 0,
     };
     setKeys((prev) => [...prev, k]);
     setNewName("");
+    setNewLimit("");
     setCreateOpen(false);
     setReveal({ name, value });
   };
@@ -197,6 +211,16 @@ const ApiKeysPage = () => {
   const deleteKey = (keyId: string) => {
     setKeys((prev) => prev.filter((k) => k.id !== keyId));
     toast.success("Ключ удалён");
+  };
+
+  const saveLimit = () => {
+    if (!editingLimit) return;
+    const parsed = parseLimitMillions(editingLimit.value);
+    setKeys((prev) =>
+      prev.map((k) => (k.id === editingLimit.id ? { ...k, monthlyTokenLimit: parsed } : k)),
+    );
+    setEditingLimit(null);
+    toast.success(parsed ? `Лимит обновлён: ${fmtTokens(parsed)} токенов/мес` : "Лимит снят");
   };
 
   return (
