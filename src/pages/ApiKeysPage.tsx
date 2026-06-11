@@ -293,18 +293,35 @@ const ApiKeysPage = () => {
                   Имя поможет различать ключи (например, «Production», «CI», «Local»).
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2">
-                <Label htmlFor="key-name">Имя ключа</Label>
-                <Input
-                  id="key-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Production"
-                  maxLength={40}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreate();
-                  }}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key-name">Имя ключа</Label>
+                  <Input
+                    id="key-name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Production"
+                    maxLength={40}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreate();
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="key-limit">Лимит токенов в месяц (млн)</Label>
+                  <Input
+                    id="key-limit"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={newLimit}
+                    onChange={(e) => setNewLimit(e.target.value)}
+                    placeholder="например, 10 = 10 млн токенов/мес"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Пусто = без лимита. По достижении лимита запросы возвращают 429.
+                  </p>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>
