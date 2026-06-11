@@ -11,7 +11,10 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
+  Gauge,
+  Infinity as InfinityIcon,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
