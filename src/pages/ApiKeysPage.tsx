@@ -11,7 +11,10 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
+  Gauge,
+  Infinity as InfinityIcon,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +54,10 @@ type ApiKey = {
   masked: string; // stored masked: first 4 + ... + last 4
   created: string;
   expires: string;
+  /** Monthly token limit; null = unlimited */
+  monthlyTokenLimit: number | null;
+  /** Mock usage in current month */
+  usedTokensMonth: number;
 };
 
 type Endpoint = { id: string; label: string; url: string };
@@ -75,6 +82,12 @@ const generateKeyValue = () => {
 const maskValue = (value: string) =>
   value.length <= 8 ? value : `${value.slice(0, 4)}${"•".repeat(20)}${value.slice(-4)}`;
 
+const fmtTokens = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`;
+  return String(n);
+};
+
 const INITIAL_KEYS: ApiKey[] = [
   {
     id: "key_default",
@@ -82,6 +95,8 @@ const INITIAL_KEYS: ApiKey[] = [
     masked: maskValue("nxg_sk_live_8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c"),
     created: "2026-03-01",
     expires: "2026-06-01",
+    monthlyTokenLimit: 10_000_000,
+    usedTokensMonth: 2_340_000,
   },
   {
     id: "key_prod",
@@ -89,6 +104,8 @@ const INITIAL_KEYS: ApiKey[] = [
     masked: maskValue("nxg_sk_live_2a4b6c8d0e1f3a5b7c9d1e3f5a7b9c1d"),
     created: "2026-04-10",
     expires: "2026-07-10",
+    monthlyTokenLimit: 2_000_000,
+    usedTokensMonth: 480_000,
   },
 ];
 
@@ -133,10 +150,21 @@ const ApiKeysPage = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newLimit, setNewLimit] = useState<string>(""); // millions of tokens, empty = unlimited
   // One-time reveal after creation/regeneration
   const [reveal, setReveal] = useState<{ name: string; value: string } | null>(null);
+  // Edit limit dialog
+  const [editingLimit, setEditingLimit] = useState<{ id: string; name: string; value: string } | null>(null);
 
   const limitReached = keys.length >= MAX_KEYS;
+
+  const parseLimitMillions = (raw: string): number | null => {
+    const t = raw.trim();
+    if (!t) return null;
+    const n = Number(t.replace(",", "."));
+    if (!isFinite(n) || n <= 0) return null;
+    return Math.round(n * 1_000_000);
+  };
 
   const copy = async (value: string, id: string) => {
     await navigator.clipboard.writeText(value);
@@ -156,9 +184,12 @@ const ApiKeysPage = () => {
       masked: maskValue(value),
       created: todayISO(),
       expires: inMonthsISO(TTL_MONTHS),
+      monthlyTokenLimit: parseLimitMillions(newLimit),
+      usedTokensMonth: 0,
     };
     setKeys((prev) => [...prev, k]);
     setNewName("");
+    setNewLimit("");
     setCreateOpen(false);
     setReveal({ name, value });
   };
@@ -180,6 +211,16 @@ const ApiKeysPage = () => {
   const deleteKey = (keyId: string) => {
     setKeys((prev) => prev.filter((k) => k.id !== keyId));
     toast.success("Ключ удалён");
+  };
+
+  const saveLimit = () => {
+    if (!editingLimit) return;
+    const parsed = parseLimitMillions(editingLimit.value);
+    setKeys((prev) =>
+      prev.map((k) => (k.id === editingLimit.id ? { ...k, monthlyTokenLimit: parsed } : k)),
+    );
+    setEditingLimit(null);
+    toast.success(parsed ? `Лимит обновлён: ${fmtTokens(parsed)} токенов/мес` : "Лимит снят");
   };
 
   return (
@@ -252,18 +293,35 @@ const ApiKeysPage = () => {
                   Имя поможет различать ключи (например, «Production», «CI», «Local»).
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2">
-                <Label htmlFor="key-name">Имя ключа</Label>
-                <Input
-                  id="key-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Production"
-                  maxLength={40}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreate();
-                  }}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="key-name">Имя ключа</Label>
+                  <Input
+                    id="key-name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Production"
+                    maxLength={40}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreate();
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="key-limit">Лимит токенов в месяц (млн)</Label>
+                  <Input
+                    id="key-limit"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={newLimit}
+                    onChange={(e) => setNewLimit(e.target.value)}
+                    placeholder="например, 10 = 10 млн токенов/мес"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Пусто = без лимита. По достижении лимита запросы возвращают 429.
+                  </p>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>
@@ -279,17 +337,18 @@ const ApiKeysPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Имя</TableHead>
+                <TableHead className="w-[180px]">Имя</TableHead>
                 <TableHead>Ключ</TableHead>
-                <TableHead className="w-[120px]">Создан</TableHead>
-                <TableHead className="w-[160px]">Истекает</TableHead>
+                <TableHead className="w-[220px]">Лимит токенов / мес</TableHead>
+                <TableHead className="w-[110px]">Создан</TableHead>
+                <TableHead className="w-[150px]">Истекает</TableHead>
                 <TableHead className="w-[120px] text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {keys.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
                     Нет активных ключей. Создайте первый, чтобы начать работу с API.
                   </TableCell>
                 </TableRow>
@@ -297,6 +356,10 @@ const ApiKeysPage = () => {
               {keys.map((k) => {
                 const expired = isExpired(k.expires);
                 const soon = isExpiringSoon(k.expires);
+                const limit = k.monthlyTokenLimit;
+                const used = k.usedTokensMonth;
+                const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                const overSoon = limit && pct >= 80;
                 return (
                   <TableRow key={k.id}>
                     <TableCell className="font-medium text-foreground">{k.name}</TableCell>
@@ -304,6 +367,40 @@ const ApiKeysPage = () => {
                       <code className="text-xs font-mono text-foreground/90 bg-secondary rounded px-2 py-1">
                         {k.masked}
                       </code>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingLimit({
+                            id: k.id,
+                            name: k.name,
+                            value: limit ? String(limit / 1_000_000) : "",
+                          })
+                        }
+                        className="w-full text-left space-y-1 group"
+                        title="Изменить лимит"
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          {limit ? (
+                            <>
+                              <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className={overSoon ? "text-yellow-500 font-medium" : "text-foreground/90"}>
+                                {fmtTokens(used)} / {fmtTokens(limit)}
+                              </span>
+                              <span className="text-muted-foreground ml-auto">{pct}%</span>
+                            </>
+                          ) : (
+                            <>
+                              <InfinityIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground group-hover:text-foreground/90">
+                                Без лимита
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {limit && <Progress value={pct} className="h-1" />}
+                      </button>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{k.created}</TableCell>
                     <TableCell>
@@ -459,6 +556,46 @@ const ApiKeysPage = () => {
           )}
           <DialogFooter>
             <Button onClick={() => setReveal(null)}>Готово</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit token limit dialog */}
+      <Dialog open={!!editingLimit} onOpenChange={(o) => !o && setEditingLimit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Лимит токенов · {editingLimit?.name}</DialogTitle>
+            <DialogDescription>
+              Месячный лимит обнуляется 1 числа. По достижении ключ возвращает 429, пока счётчик не
+              сбросится или вы не повысите лимит.
+            </DialogDescription>
+          </DialogHeader>
+          {editingLimit && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-limit">Лимит в месяц (млн токенов)</Label>
+              <Input
+                id="edit-limit"
+                type="number"
+                min="0"
+                step="0.1"
+                value={editingLimit.value}
+                onChange={(e) =>
+                  setEditingLimit({ ...editingLimit, value: e.target.value })
+                }
+                placeholder="например, 10"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveLimit();
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Пусто = без лимита.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingLimit(null)}>
+              Отмена
+            </Button>
+            <Button onClick={saveLimit}>Сохранить</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
