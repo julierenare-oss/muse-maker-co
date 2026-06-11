@@ -337,22 +337,6 @@ const ApiKeysPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">Имя</TableHead>
-                <TableHead>Ключ</TableHead>
-                <TableHead className="w-[120px]">Создан</TableHead>
-                <TableHead className="w-[160px]">Истекает</TableHead>
-                <TableHead className="w-[120px] text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {keys.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
-                    Нет активных ключей. Создайте первый, чтобы начать работу с API.
-                  </TableCell>
-                </TableRow>
-              )}
-              <TableRow>
                 <TableHead className="w-[180px]">Имя</TableHead>
                 <TableHead>Ключ</TableHead>
                 <TableHead className="w-[220px]">Лимит токенов / мес</TableHead>
