@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
-import { Search, Calendar, Download, X } from "lucide-react";
+import { Search, Calendar, Download, X, FileText, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -122,6 +128,125 @@ const PriceListTab = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = async () => {
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    // Brand palette (deep navy + neon teal/purple)
+    const navy: [number, number, number] = [15, 23, 42];
+    const teal: [number, number, number] = [45, 212, 191];
+    const purple: [number, number, number] = [167, 139, 250];
+    const muted: [number, number, number] = [148, 163, 184];
+
+    // Header band
+    doc.setFillColor(...navy);
+    doc.rect(0, 0, pageW, 70, "F");
+    doc.setFillColor(...teal);
+    doc.rect(0, 70, pageW, 2, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("NEXAGEN", 40, 35);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...muted);
+    doc.text("MaaS Price List", 40, 52);
+
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    const meta = `Updated: ${updated}    •    Currency: USD    •    Positions: ${filtered.length}`;
+    doc.text(meta, pageW - 40, 35, { align: "right" });
+    doc.setTextColor(...muted);
+    doc.text(
+      `Generated: ${new Date().toLocaleString("en-GB")}`,
+      pageW - 40,
+      52,
+      { align: "right" },
+    );
+
+    // jsPDF default fonts (helvetica) cannot render some Unicode chars (≤, em-dash)
+    const ascii = (s: string | null | undefined) =>
+      (s ?? "—").replace(/≤/g, "<=").replace(/≥/g, ">=").replace(/＞/g, ">").replace(/＜/g, "<").replace(/—/g, "-").replace(/×/g, "x").replace(/•/g, "*");
+
+    // Build rows
+    const body = filtered.map((i) => [
+      ascii(i.type),
+      ascii(i.model),
+      ascii(i.product),
+      ascii(i.context),
+      ascii(i.billing),
+      ascii(i.unit),
+      i.price == null ? "-" : `$${i.price.toFixed(2)}`,
+      i.priceVat == null ? "-" : `$${i.priceVat.toFixed(2)}`,
+    ]);
+
+    autoTable(doc, {
+      startY: 90,
+      head: [[
+        "Type",
+        "Model",
+        "Product",
+        "Context",
+        "Billing item",
+        "Unit",
+        "Price",
+        "Price + VAT (22%)",
+      ]],
+      body,
+      theme: "grid",
+      styles: {
+        font: "helvetica",
+        fontSize: 8.5,
+        cellPadding: 5,
+        textColor: [30, 41, 59],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.4,
+      },
+      headStyles: {
+        fillColor: navy,
+        textColor: [226, 232, 240],
+        fontStyle: "bold",
+        fontSize: 9,
+        halign: "left",
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 70, fontStyle: "bold" },
+        2: { cellWidth: 170, textColor: muted, font: "courier", fontSize: 7.5 },
+        3: { cellWidth: 60 },
+        4: { cellWidth: 110 },
+        5: { cellWidth: 70, textColor: muted },
+        6: { halign: "right", fontStyle: "bold" },
+        7: { halign: "right", fontStyle: "bold", textColor: [124, 58, 237] },
+      },
+      margin: { left: 30, right: 30, top: 90, bottom: 40 },
+      didDrawPage: (data) => {
+        // Footer
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(30, pageH - 28, pageW - 30, pageH - 28);
+        doc.text(
+          "Nexagen · Confidential — pricing for contracted customers only",
+          30,
+          pageH - 14,
+        );
+        doc.text(`Page ${data.pageNumber} of ${page}`, pageW - 30, pageH - 14, {
+          align: "right",
+        });
+      },
+    });
+
+    doc.save(`nexagen-price-list-${updated}.pdf`);
+  };
+
   return (
     <div className="space-y-4">
       {/* Meta strip */}
@@ -138,12 +263,34 @@ const PriceListTab = () => {
           Prices in USD
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />
-            Export CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                Export
+                <ChevronDown className="ml-1 h-3.5 w-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={exportPdf} className="gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm">PDF</span>
+                  <span className="text-[10px] text-muted-foreground">Branded report</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCsv} className="gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm">CSV</span>
+                  <span className="text-[10px] text-muted-foreground">Raw data</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
