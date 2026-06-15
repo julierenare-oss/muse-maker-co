@@ -136,40 +136,70 @@ const PriceListTab = () => {
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
 
-    // Brand palette (deep navy + neon teal/purple)
-    const navy: [number, number, number] = [15, 23, 42];
-    const teal: [number, number, number] = [45, 212, 191];
-    const purple: [number, number, number] = [167, 139, 250];
-    const muted: [number, number, number] = [148, 163, 184];
+    // Brand palette — light theme using service colors
+    const navy: [number, number, number] = [15, 23, 42];        // primary text / logo
+    const navySoft: [number, number, number] = [30, 41, 59];    // body text
+    const teal: [number, number, number] = [13, 148, 136];      // primary accent (teal-600, readable on white)
+    const tealSoft: [number, number, number] = [204, 251, 241]; // teal-100 — soft tint
+    const purple: [number, number, number] = [109, 40, 217];    // purple-700 — VAT highlight
+    const purpleSoft: [number, number, number] = [237, 233, 254]; // purple-100
+    const muted: [number, number, number] = [100, 116, 139];    // slate-500
+    const border: [number, number, number] = [226, 232, 240];   // slate-200
+    const stripe: [number, number, number] = [248, 250, 252];   // slate-50
+    const bgTint: [number, number, number] = [240, 253, 250];   // teal-50
 
-    // Header band
-    doc.setFillColor(...navy);
-    doc.rect(0, 0, pageW, 70, "F");
+    // ---------- HEADER ----------
+    // Soft teal tint strip across the top
+    doc.setFillColor(...bgTint);
+    doc.rect(0, 0, pageW, 92, "F");
+    // Accent gradient-feel: two stacked rules (teal + purple) under header
     doc.setFillColor(...teal);
-    doc.rect(0, 70, pageW, 2, "F");
+    doc.rect(0, 90, pageW * 0.62, 2, "F");
+    doc.setFillColor(...purple);
+    doc.rect(pageW * 0.62, 90, pageW * 0.38, 2, "F");
 
+    // Logo mark — rounded square with "N"
+    const markX = 40, markY = 26, markS = 38;
+    doc.setFillColor(...navy);
+    doc.roundedRect(markX, markY, markS, markS, 8, 8, "F");
+    doc.setFillColor(...teal);
+    doc.roundedRect(markX + markS - 10, markY + markS - 10, 8, 8, 2, 2, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("NEXAGEN", 40, 35);
+    doc.setFontSize(22);
+    doc.text("N", markX + markS / 2, markY + markS / 2 + 8, { align: "center" });
+
+    // Wordmark + tagline
+    doc.setTextColor(...navy);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("NEXAGEN", markX + markS + 14, 44);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setTextColor(...muted);
-    doc.text("MaaS Price List", 40, 52);
+    doc.text("Models-as-a-Service  ·  Official Price List", markX + markS + 14, 60);
 
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    const meta = `Updated: ${updated}    •    Currency: USD    •    Positions: ${filtered.length}`;
-    doc.text(meta, pageW - 40, 35, { align: "right" });
-    doc.setTextColor(...muted);
-    doc.text(
-      `Generated: ${new Date().toLocaleString("en-GB")}`,
-      pageW - 40,
-      52,
-      { align: "right" },
-    );
+    // Right-side meta "pills"
+    const pill = (label: string, value: string, x: number, y: number, accent: [number, number, number], bg: [number, number, number]) => {
+      doc.setFillColor(...bg);
+      doc.roundedRect(x, y, 150, 26, 6, 6, "F");
+      doc.setFillColor(...accent);
+      doc.roundedRect(x, y, 3, 26, 1.5, 1.5, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...muted);
+      doc.text(label.toUpperCase(), x + 10, y + 10);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...navy);
+      doc.text(value, x + 10, y + 21);
+    };
+    pill("Updated", updated, pageW - 40 - 150, 22, teal, tealSoft);
+    pill("Positions", `${filtered.length} of ${items.length}`, pageW - 40 - 150 - 160, 22, purple, purpleSoft);
+    pill("Currency", "USD  ·  VAT 22%", pageW - 40 - 150, 54, teal, tealSoft);
+    pill("Generated", new Date().toLocaleDateString("en-GB"), pageW - 40 - 150 - 160, 54, purple, purpleSoft);
 
-    // jsPDF default fonts (helvetica) cannot render some Unicode chars (≤, em-dash)
+    // jsPDF default fonts (helvetica) cannot render some Unicode chars
     const ascii = (s: string | null | undefined) =>
       (s ?? "—").replace(/≤/g, "<=").replace(/≥/g, ">=").replace(/＞/g, ">").replace(/＜/g, "<").replace(/—/g, "-").replace(/×/g, "x").replace(/•/g, "*");
 
@@ -186,7 +216,7 @@ const PriceListTab = () => {
     ]);
 
     autoTable(doc, {
-      startY: 90,
+      startY: 112,
       head: [[
         "Type",
         "Model",
@@ -198,49 +228,79 @@ const PriceListTab = () => {
         "Price + VAT (22%)",
       ]],
       body,
-      theme: "grid",
+      theme: "plain",
       styles: {
         font: "helvetica",
         fontSize: 8.5,
-        cellPadding: 5,
-        textColor: [30, 41, 59],
-        lineColor: [226, 232, 240],
-        lineWidth: 0.4,
+        cellPadding: { top: 7, right: 6, bottom: 7, left: 8 },
+        textColor: navySoft,
+        lineColor: border,
+        lineWidth: 0,
       },
       headStyles: {
         fillColor: navy,
         textColor: [226, 232, 240],
         fontStyle: "bold",
-        fontSize: 9,
+        fontSize: 8.5,
         halign: "left",
+        cellPadding: { top: 9, right: 6, bottom: 9, left: 8 },
       },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
+      bodyStyles: {
+        lineColor: border,
+        lineWidth: { top: 0, right: 0, bottom: 0.5, left: 0 },
+      },
+      alternateRowStyles: { fillColor: stripe },
       columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 70, fontStyle: "bold" },
-        2: { cellWidth: 170, textColor: muted, font: "courier", fontSize: 7.5 },
-        3: { cellWidth: 60 },
-        4: { cellWidth: 110 },
-        5: { cellWidth: 70, textColor: muted },
-        6: { halign: "right", fontStyle: "bold" },
-        7: { halign: "right", fontStyle: "bold", textColor: [124, 58, 237] },
+        0: { cellWidth: 56 },
+        1: { cellWidth: 72, fontStyle: "bold", textColor: navy },
+        2: { cellWidth: 180, textColor: muted, font: "courier", fontSize: 7.5 },
+        3: { cellWidth: 62, textColor: muted },
+        4: { cellWidth: 120 },
+        5: { cellWidth: 72, textColor: muted },
+        6: { halign: "right", fontStyle: "bold", textColor: navy },
+        7: { halign: "right", fontStyle: "bold", textColor: purple, fillColor: purpleSoft },
       },
-      margin: { left: 30, right: 30, top: 90, bottom: 40 },
+      margin: { left: 30, right: 30, top: 112, bottom: 44 },
+      didParseCell: (data) => {
+        // Render Type as a soft pill (teal tint)
+        if (data.section === "body" && data.column.index === 0) {
+          data.cell.styles.fillColor = tealSoft;
+          data.cell.styles.textColor = teal;
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fontSize = 7.5;
+          data.cell.styles.halign = "center";
+        }
+      },
       didDrawPage: (data) => {
         // Footer
-        const page = doc.getNumberOfPages();
+        const totalPages = doc.getNumberOfPages();
+        doc.setDrawColor(...border);
+        doc.setLineWidth(0.5);
+        doc.line(30, pageH - 32, pageW - 30, pageH - 32);
+
+        // Footer mark
+        doc.setFillColor(...teal);
+        doc.circle(36, pageH - 18, 3, "F");
+
+        doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
+        doc.setTextColor(...navy);
+        doc.text("NEXAGEN", 44, pageH - 16);
+
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(...muted);
-        doc.setDrawColor(226, 232, 240);
-        doc.line(30, pageH - 28, pageW - 30, pageH - 28);
         doc.text(
-          "Nexagen · Confidential — pricing for contracted customers only",
-          30,
-          pageH - 14,
+          "Confidential  ·  Pricing for contracted customers only  ·  Subject to change",
+          100,
+          pageH - 16,
         );
-        doc.text(`Page ${data.pageNumber} of ${page}`, pageW - 30, pageH - 14, {
-          align: "right",
-        });
+
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...navy);
+        doc.text(`${data.pageNumber}`, pageW - 30, pageH - 16, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...muted);
+        doc.text(` / ${totalPages}`, pageW - 24, pageH - 16);
       },
     });
 
