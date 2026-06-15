@@ -169,16 +169,20 @@ const PriceListTab = () => {
       { align: "right" },
     );
 
+    // jsPDF default fonts (helvetica) cannot render some Unicode chars (≤, em-dash)
+    const ascii = (s: string | null | undefined) =>
+      (s ?? "—").replace(/≤/g, "<=").replace(/≥/g, ">=").replace(/—/g, "-");
+
     // Build rows
     const body = filtered.map((i) => [
-      i.type ?? "—",
-      i.model ?? "—",
-      i.product ?? "—",
-      i.context ?? "—",
-      i.billing ?? "—",
-      i.unit ?? "—",
-      i.price == null ? "—" : `$${i.price.toFixed(2)}`,
-      i.priceVat == null ? "—" : `$${i.priceVat.toFixed(2)}`,
+      ascii(i.type),
+      ascii(i.model),
+      ascii(i.product),
+      ascii(i.context),
+      ascii(i.billing),
+      ascii(i.unit),
+      i.price == null ? "-" : `$${i.price.toFixed(2)}`,
+      i.priceVat == null ? "-" : `$${i.priceVat.toFixed(2)}`,
     ]);
 
     autoTable(doc, {
