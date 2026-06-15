@@ -171,7 +171,7 @@ const PriceListTab = () => {
 
     // jsPDF default fonts (helvetica) cannot render some Unicode chars (≤, em-dash)
     const ascii = (s: string | null | undefined) =>
-      (s ?? "—").replace(/≤/g, "<=").replace(/≥/g, ">=").replace(/—/g, "-");
+      (s ?? "—").replace(/≤/g, "<=").replace(/≥/g, ">=").replace(/＞/g, ">").replace(/＜/g, "<").replace(/—/g, "-").replace(/×/g, "x").replace(/•/g, "*");
 
     // Build rows
     const body = filtered.map((i) => [
