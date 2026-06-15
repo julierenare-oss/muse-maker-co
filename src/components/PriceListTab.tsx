@@ -128,9 +128,121 @@ const PriceListTab = () => {
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Meta strip */}
+  const exportPdf = async () => {
+    const { jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+
+    const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    // Brand palette (deep navy + neon teal/purple)
+    const navy: [number, number, number] = [15, 23, 42];
+    const teal: [number, number, number] = [45, 212, 191];
+    const purple: [number, number, number] = [167, 139, 250];
+    const muted: [number, number, number] = [148, 163, 184];
+
+    // Header band
+    doc.setFillColor(...navy);
+    doc.rect(0, 0, pageW, 70, "F");
+    doc.setFillColor(...teal);
+    doc.rect(0, 70, pageW, 2, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("NEXAGEN", 40, 35);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...muted);
+    doc.text("MaaS Price List", 40, 52);
+
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    const meta = `Updated: ${updated}    •    Currency: USD    •    Positions: ${filtered.length}`;
+    doc.text(meta, pageW - 40, 35, { align: "right" });
+    doc.setTextColor(...muted);
+    doc.text(
+      `Generated: ${new Date().toLocaleString("en-GB")}`,
+      pageW - 40,
+      52,
+      { align: "right" },
+    );
+
+    // Build rows
+    const body = filtered.map((i) => [
+      i.type ?? "—",
+      i.model ?? "—",
+      i.product ?? "—",
+      i.context ?? "—",
+      i.billing ?? "—",
+      i.unit ?? "—",
+      i.price == null ? "—" : `$${i.price.toFixed(2)}`,
+      i.priceVat == null ? "—" : `$${i.priceVat.toFixed(2)}`,
+    ]);
+
+    autoTable(doc, {
+      startY: 90,
+      head: [[
+        "Type",
+        "Model",
+        "Product",
+        "Context",
+        "Billing item",
+        "Unit",
+        "Цена",
+        "Цена с НДС (22%)",
+      ]],
+      body,
+      theme: "grid",
+      styles: {
+        font: "helvetica",
+        fontSize: 8.5,
+        cellPadding: 5,
+        textColor: [30, 41, 59],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.4,
+      },
+      headStyles: {
+        fillColor: navy,
+        textColor: [226, 232, 240],
+        fontStyle: "bold",
+        fontSize: 9,
+        halign: "left",
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 70, fontStyle: "bold" },
+        2: { cellWidth: 170, textColor: muted, font: "courier", fontSize: 7.5 },
+        3: { cellWidth: 60 },
+        4: { cellWidth: 110 },
+        5: { cellWidth: 70, textColor: muted },
+        6: { halign: "right", fontStyle: "bold" },
+        7: { halign: "right", fontStyle: "bold", textColor: [124, 58, 237] },
+      },
+      margin: { left: 30, right: 30, top: 90, bottom: 40 },
+      didDrawPage: (data) => {
+        // Footer
+        const page = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(30, pageH - 28, pageW - 30, pageH - 28);
+        doc.text(
+          "Nexagen · Confidential — pricing for contracted customers only",
+          30,
+          pageH - 14,
+        );
+        doc.text(`Page ${data.pageNumber} of ${page}`, pageW - 30, pageH - 14, {
+          align: "right",
+        });
+      },
+    });
+
+    doc.save(`nexagen-price-list-${updated}.pdf`);
+  };
+
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-primary" />
