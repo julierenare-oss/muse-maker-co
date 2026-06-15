@@ -243,6 +243,9 @@ const PriceListTab = () => {
     doc.save(`nexagen-price-list-${updated}.pdf`);
   };
 
+  return (
+    <div className="space-y-4">
+      {/* Meta strip */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-primary" />
@@ -256,12 +259,34 @@ const PriceListTab = () => {
           Prices in USD
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="mr-1.5 h-3.5 w-3.5" />
-            Export CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                Export
+                <ChevronDown className="ml-1 h-3.5 w-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={exportPdf} className="gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm">PDF</span>
+                  <span className="text-[10px] text-muted-foreground">Branded report</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCsv} className="gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-sm">CSV</span>
+                  <span className="text-[10px] text-muted-foreground">Raw data</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
 
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
