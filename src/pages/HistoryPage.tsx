@@ -315,7 +315,18 @@ const HistoryPage = () => {
             Пока нет диалогов
           </div>
         ) : (
-          <div className="space-y-3">{items.map(renderConversation)}</div>
+          <Tabs defaultValue="conversations">
+            <TabsList>
+              <TabsTrigger value="conversations">Диалоги</TabsTrigger>
+              <TabsTrigger value="files">Файлы</TabsTrigger>
+            </TabsList>
+            <TabsContent value="conversations" className="mt-4">
+              <div className="space-y-3">{items.map(renderConversation)}</div>
+            </TabsContent>
+            <TabsContent value="files" className="mt-4">
+              <ProjectFiles conversations={items} />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     );
