@@ -336,8 +336,25 @@ const GenerationPage = () => {
         </div>
       </div>
 
-      <aside className="w-72 border-l border-primary/20 p-4 overflow-y-auto hidden lg:block">
-        <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
+      <aside className="w-72 border-l border-primary/20 overflow-hidden hidden lg:flex flex-col">
+        <Tabs defaultValue="params" className="flex-1 flex flex-col">
+          <TabsList className="m-3 grid grid-cols-2">
+            <TabsTrigger value="params">Параметры</TabsTrigger>
+            <TabsTrigger value="files">
+              Файлы
+              {(() => {
+                const n = messages.reduce((a, m) => a + (m.attachments?.length || 0), 0);
+                return n > 0 ? <span className="ml-1.5 text-[10px] opacity-70">{n}</span> : null;
+              })()}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="params" className="flex-1 overflow-y-auto px-4 pb-4 mt-0">
+            <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
+          </TabsContent>
+          <TabsContent value="files" className="flex-1 overflow-y-auto px-3 pb-4 mt-0">
+            <FilesPanel messages={messages} dense />
+          </TabsContent>
+        </Tabs>
       </aside>
     </div>
   );
