@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ModalitySelector from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
+import FilesPanel from "@/components/FilesPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { sendTextMessage, sendImageMessage, sendVideoMessage, uploadFile } from "@/lib/api";
 import { useChatStore, type ChatModality } from "@/lib/chatStore";
 import { useChatParams } from "@/lib/chatParams";
