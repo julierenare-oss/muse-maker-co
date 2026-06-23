@@ -52,6 +52,8 @@ import {
   getAssignments,
   assignConversation,
 } from "@/lib/projects";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FilesPanel from "@/components/FilesPanel";
 
 const typeIcons: Record<string, typeof MessageSquare> = {
   text: MessageSquare,
@@ -73,6 +75,33 @@ const formatDate = (iso: string) => {
   } catch {
     return "";
   }
+};
+
+const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) => {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all(conversations.map((c) => fetchConversationMessages(c.uuid).catch(() => [])))
+      .then((all) => {
+        if (cancelled) return;
+        setMessages(all.flat());
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [conversations]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+  return <FilesPanel messages={messages as any} emptyHint="В диалогах этого проекта пока нет вложений или результатов." />;
 };
 
 const HistoryPage = () => {
@@ -313,7 +342,18 @@ const HistoryPage = () => {
             Пока нет диалогов
           </div>
         ) : (
-          <div className="space-y-3">{items.map(renderConversation)}</div>
+          <Tabs defaultValue="conversations">
+            <TabsList>
+              <TabsTrigger value="conversations">Диалоги</TabsTrigger>
+              <TabsTrigger value="files">Файлы</TabsTrigger>
+            </TabsList>
+            <TabsContent value="conversations" className="mt-4">
+              <div className="space-y-3">{items.map(renderConversation)}</div>
+            </TabsContent>
+            <TabsContent value="files" className="mt-4">
+              <ProjectFiles conversations={items} />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     );
