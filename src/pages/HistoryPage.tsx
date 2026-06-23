@@ -52,6 +52,8 @@ import {
   getAssignments,
   assignConversation,
 } from "@/lib/projects";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FilesPanel from "@/components/FilesPanel";
 
 const typeIcons: Record<string, typeof MessageSquare> = {
   text: MessageSquare,
