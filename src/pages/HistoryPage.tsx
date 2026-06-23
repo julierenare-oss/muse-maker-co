@@ -77,6 +77,33 @@ const formatDate = (iso: string) => {
   }
 };
 
+const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) => {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all(conversations.map((c) => fetchConversationMessages(c.uuid).catch(() => [])))
+      .then((all) => {
+        if (cancelled) return;
+        setMessages(all.flat());
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [conversations]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+  return <FilesPanel messages={messages as any} emptyHint="В диалогах этого проекта пока нет вложений или результатов." />;
+};
+
 const HistoryPage = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
