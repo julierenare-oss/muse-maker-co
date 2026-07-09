@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   Activity, ArrowDownToLine, ArrowUpFromLine, Calendar as CalendarIcon,
-  DollarSign, Download, Filter, FileSpreadsheet, FileText, Users, Zap,
+  Download, Filter, FileSpreadsheet, FileText, Search, Users, Zap,
+  Image as ImageIcon, Video as VideoIcon, MessageSquare, Trophy,
+  ChevronLeft, ChevronRight, RefreshCw,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
@@ -22,127 +24,216 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { type ModelKey, costForRequest, fmtUSD, PRICING } from "@/lib/pricing";
 
-// ---------------- Mock dataset ----------------
-const ALL_MODELS: ModelKey[] = ["MaaS-MJ", "MaaS_image_1", "MaaS_Cl_Opus"];
-const MODEL_COLORS: Record<ModelKey, string> = {
-  "MaaS-MJ": "hsl(165 100% 50%)",
-  "MaaS_image_1": "hsl(270 100% 65%)",
-  "MaaS_Cl_Opus": "hsl(45 100% 60%)",
+/* ---------------- Models ---------------- */
+type ModelType = "text" | "image" | "video";
+interface ModelDef { name: string; type: ModelType; }
+
+const TEXT_MODELS = [
+  "gpt-4o", "gpt-4o-mini", "claude-opus-4", "claude-sonnet-4", "gemini-2.5-pro",
+  "gemini-2.5-flash", "llama-3.3-70b", "mistral-large-2", "deepseek-v3", "qwen-2.5-72b",
+];
+const IMAGE_MODELS = [
+  "dall-e-3", "midjourney-v7", "stable-diffusion-3.5", "flux-pro-1.1", "flux-schnell",
+  "imagen-3", "ideogram-v2", "leonardo-phoenix", "playground-v3", "recraft-v3",
+];
+const VIDEO_MODELS = [
+  "sora-2", "veo-3", "runway-gen-4", "pika-2.0", "kling-1.6",
+  "luma-dream-machine", "haiper-2.5", "hailuo-01", "cogvideox-5b", "mochi-1",
+];
+
+const ALL_MODELS: ModelDef[] = [
+  ...TEXT_MODELS.map((n) => ({ name: n, type: "text" as ModelType })),
+  ...IMAGE_MODELS.map((n) => ({ name: n, type: "image" as ModelType })),
+  ...VIDEO_MODELS.map((n) => ({ name: n, type: "video" as ModelType })),
+];
+const MODEL_NAMES = ALL_MODELS.map((m) => m.name);
+const MODEL_TYPE: Record<string, ModelType> = Object.fromEntries(
+  ALL_MODELS.map((m) => [m.name, m.type]),
+);
+
+const TYPE_COLOR: Record<ModelType, string> = {
+  text: "hsl(165 100% 50%)",   // primary teal
+  image: "hsl(270 100% 65%)",  // accent purple
+  video: "hsl(35 100% 60%)",   // amber
+};
+const TYPE_ICON: Record<ModelType, typeof MessageSquare> = {
+  text: MessageSquare,
+  image: ImageIcon,
+  video: VideoIcon,
 };
 
-type MemberKey = "Anna K." | "Ivan P." | "Maria S." | "Dmitry V.";
-const ALL_MEMBERS: MemberKey[] = ["Anna K.", "Ivan P.", "Maria S.", "Dmitry V."];
+/* ---------------- Clients ---------------- */
+const CLIENTS = [
+  "Acme Corp", "Globex", "Initech", "Umbrella", "Stark Industries",
+  "Wayne Enterprises", "Cyberdyne", "Soylent", "Massive Dynamic", "Tyrell Corp",
+  "Aperture Science", "Black Mesa", "Weyland-Yutani", "Oscorp", "Hooli",
+  "Pied Piper", "Dunder Mifflin", "Vandelay", "Nakatomi", "Los Pollos",
+  "Vault-Tec", "Rekall", "Blue Sun", "Combine", "Prime Focus",
+  "Northwind", "Contoso", "Fabrikam", "Adventure Works", "Litware Labs",
+];
+
+/* ---------------- Seeded RNG for stable mocks ---------------- */
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 interface RequestRow {
   ts: Date;
-  model: ModelKey;
-  member: MemberKey;
+  model: string;
+  type: ModelType;
+  client: string;
   inputTokens: number;
   outputTokens: number;
 }
 
-const RAW: RequestRow[] = [
-  { ts: new Date("2026-03-02T10:14:00Z"), model: "MaaS_Cl_Opus", member: "Anna K.", inputTokens: 1800, outputTokens: 920 },
-  { ts: new Date("2026-03-07T13:40:00Z"), model: "MaaS-MJ", member: "Ivan P.", inputTokens: 1200, outputTokens: 0 },
-  { ts: new Date("2026-03-12T09:05:00Z"), model: "MaaS_image_1", member: "Maria S.", inputTokens: 800, outputTokens: 0 },
-  { ts: new Date("2026-03-18T16:22:00Z"), model: "MaaS_Cl_Opus", member: "Anna K.", inputTokens: 5400, outputTokens: 2100 },
-  { ts: new Date("2026-03-25T11:00:00Z"), model: "MaaS-MJ", member: "Dmitry V.", inputTokens: 1500, outputTokens: 0 },
-  { ts: new Date("2026-04-02T08:30:00Z"), model: "MaaS_image_1", member: "Maria S.", inputTokens: 950, outputTokens: 0 },
-  { ts: new Date("2026-04-08T14:18:00Z"), model: "MaaS_Cl_Opus", member: "Ivan P.", inputTokens: 3200, outputTokens: 1450 },
-  { ts: new Date("2026-04-12T17:45:00Z"), model: "MaaS-MJ", member: "Anna K.", inputTokens: 1100, outputTokens: 0 },
-  { ts: new Date("2026-04-15T10:10:00Z"), model: "MaaS_image_1", member: "Dmitry V.", inputTokens: 1300, outputTokens: 0 },
-  { ts: new Date("2026-04-20T21:18:00Z"), model: "MaaS_Cl_Opus", member: "Anna K.", inputTokens: 7200, outputTokens: 3100 },
-  { ts: new Date("2026-04-20T21:22:00Z"), model: "MaaS-MJ", member: "Ivan P.", inputTokens: 2400, outputTokens: 0 },
-  { ts: new Date("2026-04-20T21:25:00Z"), model: "MaaS_Cl_Opus", member: "Anna K.", inputTokens: 8800, outputTokens: 3650 },
-  { ts: new Date("2026-04-20T21:27:00Z"), model: "MaaS_image_1", member: "Maria S.", inputTokens: 1850, outputTokens: 0 },
-  { ts: new Date("2026-04-20T21:31:00Z"), model: "MaaS-MJ", member: "Dmitry V.", inputTokens: 1700, outputTokens: 0 },
-  { ts: new Date("2026-04-20T21:36:00Z"), model: "MaaS_Cl_Opus", member: "Ivan P.", inputTokens: 6900, outputTokens: 2980 },
-  { ts: new Date("2026-04-21T09:15:00Z"), model: "MaaS_image_1", member: "Maria S.", inputTokens: 2100, outputTokens: 0 },
-  { ts: new Date("2026-04-21T14:02:00Z"), model: "MaaS-MJ", member: "Dmitry V.", inputTokens: 1500, outputTokens: 0 },
-];
-RAW[9].inputTokens += 4000;
-RAW[11].inputTokens += 5000;
-RAW[14].inputTokens += 5000;
+/* Generate ~4000 requests over the last 14 days, aligned to 10-min buckets. */
+const ANCHOR = new Date("2026-04-21T23:50:00Z");
+const RAW: RequestRow[] = (() => {
+  const rand = mulberry32(1337);
+  const rows: RequestRow[] = [];
+  const N = 4000;
+  const spanMs = 14 * 24 * 60 * 60 * 1000;
+  const start = ANCHOR.getTime() - spanMs;
 
-// ---------------- Filters ----------------
-type RangePreset = "1h" | "6h" | "24h" | "7d" | "30d" | "custom";
-type Granularity = "auto" | "hour" | "day" | "week" | "month";
+  // Give some clients more weight for realism
+  const clientWeights = CLIENTS.map((_, i) => 1 + rand() * (i < 8 ? 6 : 2));
+  const sumCW = clientWeights.reduce((s, x) => s + x, 0);
+
+  const pickWeighted = (weights: number[], sum: number) => {
+    let r = rand() * sum;
+    for (let i = 0; i < weights.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    return weights.length - 1;
+  };
+
+  for (let i = 0; i < N; i++) {
+    // Time — 10-minute aligned, biased toward business hours
+    const raw = start + rand() * spanMs;
+    const d = new Date(Math.floor(raw / (10 * 60 * 1000)) * 10 * 60 * 1000);
+
+    const ci = pickWeighted(clientWeights, sumCW);
+    const client = CLIENTS[ci];
+
+    const typeRoll = rand();
+    const type: ModelType = typeRoll < 0.55 ? "text" : typeRoll < 0.85 ? "image" : "video";
+    const pool = type === "text" ? TEXT_MODELS : type === "image" ? IMAGE_MODELS : VIDEO_MODELS;
+    const model = pool[Math.floor(rand() * pool.length)];
+
+    let inputTokens = 0;
+    let outputTokens = 0;
+    if (type === "text") {
+      inputTokens = Math.round(400 + rand() * 6000);
+      outputTokens = Math.round(200 + rand() * 3000);
+    } else if (type === "image") {
+      inputTokens = Math.round(80 + rand() * 400);
+      outputTokens = Math.round(1500 + rand() * 3500); // treat pixels-equivalent
+    } else {
+      inputTokens = Math.round(100 + rand() * 500);
+      outputTokens = Math.round(8000 + rand() * 20000);
+    }
+
+    rows.push({ ts: d, model, type, client, inputTokens, outputTokens });
+  }
+  rows.sort((a, b) => a.ts.getTime() - b.ts.getTime());
+  return rows;
+})();
+
+/* ---------------- Filters ---------------- */
+type RangePreset = "10m" | "1h" | "6h" | "24h" | "7d" | "14d" | "custom";
+type Granularity = "auto" | "10min" | "hour" | "day" | "week";
 
 const PRESETS: { value: RangePreset; label: string }[] = [
+  { value: "10m", label: "Last 10 min" },
   { value: "1h", label: "Last 1h" },
   { value: "6h", label: "Last 6h" },
   { value: "24h", label: "Last 24h" },
-  { value: "7d", label: "Last 7d" },
-  { value: "30d", label: "Last 30d" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "14d", label: "Last 14 days" },
   { value: "custom", label: "Custom range" },
 ];
 
 const presetToRange = (p: RangePreset, anchor: Date): { from: Date; to: Date } => {
-  const to = anchor;
+  const to = new Date(anchor);
   const from = new Date(to);
   switch (p) {
+    case "10m": from.setMinutes(from.getMinutes() - 10); break;
     case "1h": from.setHours(from.getHours() - 1); break;
     case "6h": from.setHours(from.getHours() - 6); break;
     case "24h": from.setDate(from.getDate() - 1); break;
     case "7d": from.setDate(from.getDate() - 7); break;
-    case "30d": from.setDate(from.getDate() - 30); break;
-    case "custom": from.setDate(from.getDate() - 30); break;
+    case "14d": from.setDate(from.getDate() - 14); break;
+    case "custom": from.setDate(from.getDate() - 14); break;
   }
   return { from, to };
 };
 
 const autoGranularity = (from: Date, to: Date): Exclude<Granularity, "auto"> => {
   const hours = (to.getTime() - from.getTime()) / 36e5;
-  if (hours <= 24) return "hour";
-  if (hours <= 24 * 14) return "day";
-  if (hours <= 24 * 90) return "week";
-  return "month";
+  if (hours <= 6) return "10min";
+  if (hours <= 48) return "hour";
+  if (hours <= 24 * 21) return "day";
+  return "week";
 };
 
 const bucketKey = (d: Date, g: Exclude<Granularity, "auto">) => {
   const x = new Date(d);
-  if (g === "hour") { x.setMinutes(0, 0, 0); return x.toISOString(); }
-  if (g === "day") { x.setHours(0, 0, 0, 0); return x.toISOString().slice(0, 10); }
-  if (g === "week") {
-    const day = x.getUTCDay();
-    const diff = (day + 6) % 7;
-    x.setUTCDate(x.getUTCDate() - diff);
-    x.setUTCHours(0, 0, 0, 0);
-    return x.toISOString().slice(0, 10);
+  if (g === "10min") {
+    const ms = Math.floor(x.getTime() / (10 * 60 * 1000)) * 10 * 60 * 1000;
+    return new Date(ms).toISOString();
   }
-  x.setUTCDate(1); x.setUTCHours(0, 0, 0, 0);
-  return x.toISOString().slice(0, 7);
+  if (g === "hour") { x.setUTCMinutes(0, 0, 0); return x.toISOString(); }
+  if (g === "day") { x.setUTCHours(0, 0, 0, 0); return x.toISOString().slice(0, 10); }
+  const day = x.getUTCDay();
+  const diff = (day + 6) % 7;
+  x.setUTCDate(x.getUTCDate() - diff);
+  x.setUTCHours(0, 0, 0, 0);
+  return x.toISOString().slice(0, 10);
 };
 
 const labelBucket = (k: string, g: Exclude<Granularity, "auto">) => {
+  if (g === "10min") return format(new Date(k), "MMM d, HH:mm");
   if (g === "hour") return format(new Date(k), "MMM d, HH:mm");
   if (g === "day") return format(new Date(k), "MMM d");
-  if (g === "week") return `Week of ${format(new Date(k), "MMM d")}`;
-  return format(new Date(k + "-01"), "MMM yyyy");
+  return `W of ${format(new Date(k), "MMM d")}`;
 };
 
 const fmtNumber = (n: number) => n.toLocaleString("en-US");
+const compact = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
+  : n >= 1_000 ? `${(n / 1_000).toFixed(1)}k`
+  : String(n);
 
-// ---------------- Component ----------------
+/* ---------------- Component ---------------- */
+const PAGE_SIZE = 8;
+
 const DashboardPage = () => {
-  const ANCHOR = new Date("2026-04-21T23:59:59Z");
-
-  const [preset, setPreset] = useState<RangePreset>("custom");
+  const [preset, setPreset] = useState<RangePreset>("14d");
   const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>({
-    from: new Date("2026-03-01T00:00:00Z"),
-    to: new Date("2026-04-21T23:59:59Z"),
+    from: new Date(ANCHOR.getTime() - 14 * 86400_000),
+    to: ANCHOR,
   });
   const [granularity, setGranularity] = useState<Granularity>("auto");
-  const [selectedModels, setSelectedModels] = useState<ModelKey[]>([...ALL_MODELS]);
-  const [selectedMembers, setSelectedMembers] = useState<MemberKey[]>([...ALL_MEMBERS]);
-  const [activeTab, setActiveTab] = useState<"requests" | "tokens" | "models">("requests");
+  const [selectedTypes, setSelectedTypes] = useState<ModelType[]>(["text", "image", "video"]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([...MODEL_NAMES]);
+  const [selectedClients, setSelectedClients] = useState<string[]>([...CLIENTS]);
+  const [activeTab, setActiveTab] = useState<"overview" | "clients" | "models">("overview");
+  const [clientQuery, setClientQuery] = useState("");
+  const [clientSort, setClientSort] = useState<"requests" | "input" | "output" | "total">("requests");
+  const [page, setPage] = useState(0);
 
   const range = preset === "custom" ? customRange : presetToRange(preset, ANCHOR);
   const effGran: Exclude<Granularity, "auto"> =
@@ -153,47 +244,25 @@ const DashboardPage = () => {
       (r) =>
         r.ts >= range.from &&
         r.ts <= range.to &&
+        selectedTypes.includes(r.type) &&
         selectedModels.includes(r.model) &&
-        selectedMembers.includes(r.member),
+        selectedClients.includes(r.client),
     ),
-    [range.from, range.to, selectedModels, selectedMembers],
+    [range.from, range.to, selectedTypes, selectedModels, selectedClients],
   );
 
   const totalRequests = filtered.length;
   const totalInput = filtered.reduce((s, r) => s + r.inputTokens, 0);
   const totalOutput = filtered.reduce((s, r) => s + r.outputTokens, 0);
-  const totalCost = filtered.reduce(
-    (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
-    0,
-  );
+  const activeClients = new Set(filtered.map((r) => r.client)).size;
 
+  /* Time series */
   const reqOverTime = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { requests: number; input: number; output: number }>();
     filtered.forEach((r) => {
       const k = bucketKey(r.ts, effGran);
-      map.set(k, (map.get(k) ?? 0) + 1);
-    });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => (a < b ? -1 : 1))
-      .map(([k, v]) => ({ bucket: k, label: labelBucket(k, effGran), requests: v }));
-  }, [filtered, effGran]);
-
-  const reqByModel = useMemo(() => {
-    const map = new Map<ModelKey, number>();
-    filtered.forEach((r) => map.set(r.model, (map.get(r.model) ?? 0) + 1));
-    const total = filtered.length || 1;
-    return Array.from(map.entries()).map(([model, value]) => ({
-      model,
-      value,
-      percent: Math.round((value / total) * 100),
-    }));
-  }, [filtered]);
-
-  const tokensOverTime = useMemo(() => {
-    const map = new Map<string, { input: number; output: number }>();
-    filtered.forEach((r) => {
-      const k = bucketKey(r.ts, effGran);
-      const cur = map.get(k) ?? { input: 0, output: 0 };
+      const cur = map.get(k) ?? { requests: 0, input: 0, output: 0 };
+      cur.requests += 1;
       cur.input += r.inputTokens;
       cur.output += r.outputTokens;
       map.set(k, cur);
@@ -203,57 +272,75 @@ const DashboardPage = () => {
       .map(([k, v]) => ({ bucket: k, label: labelBucket(k, effGran), ...v }));
   }, [filtered, effGran]);
 
-  const tokensByModel = useMemo(() => {
-    return ALL_MODELS.filter((m) => selectedModels.includes(m)).map((m) => {
-      const rows = filtered.filter((r) => r.model === m);
-      const input = rows.reduce((s, r) => s + r.inputTokens, 0);
-      const output = rows.reduce((s, r) => s + r.outputTokens, 0);
-      const cost = rows.reduce(
-        (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
-        0,
-      );
-      return { model: m, requests: rows.length, input, output, cost };
-    });
-  }, [filtered, selectedModels]);
-
-  const modelTrend = useMemo(() => {
-    const buckets = new Map<string, Record<string, number | string>>();
-    filtered.forEach((r) => {
-      const k = bucketKey(r.ts, effGran);
-      const row = buckets.get(k) ?? { bucket: k, label: labelBucket(k, effGran) };
-      row[r.model] = ((row[r.model] as number) ?? 0) + 1;
-      buckets.set(k, row);
-    });
-    return Array.from(buckets.values()).sort((a, b) =>
-      (a.bucket as string) < (b.bucket as string) ? -1 : 1,
-    );
-  }, [filtered, effGran]);
-
-  // Per-member breakdown (incl. estimated cost)
-  const byMember = useMemo(() => {
-    return ALL_MEMBERS.filter((m) => selectedMembers.includes(m)).map((member) => {
-      const rows = filtered.filter((r) => r.member === member);
+  /* Per type */
+  const byType = useMemo(() => {
+    const types: ModelType[] = ["text", "image", "video"];
+    return types.map((t) => {
+      const rows = filtered.filter((r) => r.type === t);
       return {
-        member,
+        type: t,
         requests: rows.length,
         input: rows.reduce((s, r) => s + r.inputTokens, 0),
         output: rows.reduce((s, r) => s + r.outputTokens, 0),
-        cost: rows.reduce(
-          (s, r) => s + costForRequest(r.model, r.inputTokens, r.outputTokens),
-          0,
-        ),
       };
     });
-  }, [filtered, selectedMembers]);
+  }, [filtered]);
 
-  const toggleModel = (m: ModelKey) =>
-    setSelectedModels((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m],
-    );
-  const toggleMember = (m: MemberKey) =>
-    setSelectedMembers((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m],
-    );
+  /* Per model */
+  const byModel = useMemo(() => {
+    const map = new Map<string, { requests: number; input: number; output: number }>();
+    filtered.forEach((r) => {
+      const cur = map.get(r.model) ?? { requests: 0, input: 0, output: 0 };
+      cur.requests += 1;
+      cur.input += r.inputTokens;
+      cur.output += r.outputTokens;
+      map.set(r.model, cur);
+    });
+    return Array.from(map.entries())
+      .map(([model, v]) => ({ model, type: MODEL_TYPE[model], ...v }))
+      .sort((a, b) => b.requests - a.requests);
+  }, [filtered]);
+
+  /* Per client with mini sparkline */
+  const byClient = useMemo(() => {
+    const map = new Map<string, { requests: number; input: number; output: number; series: Map<string, number> }>();
+    filtered.forEach((r) => {
+      const cur = map.get(r.client) ?? { requests: 0, input: 0, output: 0, series: new Map() };
+      cur.requests += 1;
+      cur.input += r.inputTokens;
+      cur.output += r.outputTokens;
+      const k = bucketKey(r.ts, effGran);
+      cur.series.set(k, (cur.series.get(k) ?? 0) + 1);
+      map.set(r.client, cur);
+    });
+    return Array.from(map.entries()).map(([client, v]) => ({
+      client,
+      requests: v.requests,
+      input: v.input,
+      output: v.output,
+      total: v.input + v.output,
+      spark: Array.from(v.series.entries())
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([, r]) => ({ v: r })),
+    }));
+  }, [filtered, effGran]);
+
+  const clientsSorted = useMemo(() => {
+    const q = clientQuery.trim().toLowerCase();
+    const list = byClient
+      .filter((c) => !q || c.client.toLowerCase().includes(q));
+    list.sort((a, b) => b[clientSort] - a[clientSort]);
+    return list;
+  }, [byClient, clientQuery, clientSort]);
+
+  const topClients = useMemo(() => [...byClient].sort((a, b) => b.requests - a.requests).slice(0, 5), [byClient]);
+  const maxTopReq = topClients[0]?.requests ?? 1;
+
+  const totalPages = Math.max(1, Math.ceil(clientsSorted.length / PAGE_SIZE));
+  const pagedClients = clientsSorted.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  const toggleType = (t: ModelType) =>
+    setSelectedTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
   const tooltipStyle = {
     backgroundColor: "hsl(var(--popover))",
@@ -263,180 +350,74 @@ const DashboardPage = () => {
     fontSize: 12,
   } as const;
 
-  // ---------------- Exports ----------------
-  const periodLabel = `${format(range.from, "dd.MM.yyyy")}_${format(range.to, "dd.MM.yyyy")}`;
+  /* ---------------- Exports ---------------- */
+  const periodLabel = `${format(range.from, "dd.MM.yyyy_HHmm")}_${format(range.to, "dd.MM.yyyy_HHmm")}`;
 
   const exportXlsx = () => {
     const wb = XLSX.utils.book_new();
-
     const summary = [
-      ["Cloudsway MaaS — Analytics Report"],
+      ["NEXAGEN — Analytics Report"],
       ["Period", `${format(range.from, "dd.MM.yyyy HH:mm")} — ${format(range.to, "dd.MM.yyyy HH:mm")} UTC`],
       ["Granularity", effGran],
-      ["Models", selectedModels.join(", ")],
-      ["Members", selectedMembers.join(", ")],
-      [],
       ["Total Requests", totalRequests],
       ["Total Input Tokens", totalInput],
       ["Total Output Tokens", totalOutput],
-      ["Estimated Cost (USD)", Number(totalCost.toFixed(4))],
-      [],
-      ["Note", "Costs are calculated using the same tariff sheet as the Billing section."],
+      ["Active Clients", activeClients],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Summary");
-
-    const pricingRows = [
-      ["Model", "Input $/1K tokens", "Output $/1K tokens", "Per request $"],
-      ...ALL_MODELS.map((m) => [
-        m, PRICING[m].inputPer1k, PRICING[m].outputPer1k, PRICING[m].perRequest ?? 0,
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pricingRows), "Pricing");
-
-    const reqRows = [["Time", "Requests"], ...reqOverTime.map((r) => [r.label, r.requests])];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(reqRows), "Requests over Time");
-
-    const modelRows = [
-      ["Model", "Requests", "Share %"],
-      ...reqByModel.map((r) => [r.model, r.value, r.percent]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(modelRows), "Requests by Model");
-
-    const tokRows = [
-      ["Time", "Input", "Output"],
-      ...tokensOverTime.map((r) => [r.label, r.input, r.output]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokRows), "Tokens over Time");
-
-    const tokByModel = [
-      ["Model", "Requests", "Input", "Output", "Estimated Cost (USD)"],
-      ...tokensByModel.map((r) => [
-        r.model, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(tokByModel), "Tokens by Model");
-
-    const memberRows = [
-      ["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
-      ...byMember.map((r) => [
-        r.member, r.requests, r.input, r.output, Number(r.cost.toFixed(4)),
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memberRows), "By Member");
-
-    const rawRows = [
-      ["Timestamp UTC", "Member", "Model", "Input Tokens", "Output Tokens", "Estimated Cost (USD)"],
-      ...filtered.map((r) => [
-        format(r.ts, "yyyy-MM-dd HH:mm"),
-        r.member, r.model, r.inputTokens, r.outputTokens,
-        Number(costForRequest(r.model, r.inputTokens, r.outputTokens).toFixed(4)),
-      ]),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rawRows), "Raw Data");
-
-    XLSX.writeFile(wb, `cloudsway_analytics_${periodLabel}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ["Time", "Requests", "Input Tokens", "Output Tokens"],
+      ...reqOverTime.map((r) => [r.label, r.requests, r.input, r.output]),
+    ]), "Timeseries");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ["Client", "Requests", "Input Tokens", "Output Tokens"],
+      ...clientsSorted.map((c) => [c.client, c.requests, c.input, c.output]),
+    ]), "By Client");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ["Model", "Type", "Requests", "Input Tokens", "Output Tokens"],
+      ...byModel.map((m) => [m.model, m.type, m.requests, m.input, m.output]),
+    ]), "By Model");
+    XLSX.writeFile(wb, `nexagen_analytics_${periodLabel}.xlsx`);
   };
 
   const exportPdf = () => {
     const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
-
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, W, 70, "F");
     doc.setTextColor(34, 211, 238);
     doc.setFontSize(18);
-    doc.text("Cloudsway MaaS — Analytics Report", 40, 35);
+    doc.text("NEXAGEN — Analytics Report", 40, 35);
     doc.setTextColor(226, 232, 240);
     doc.setFontSize(10);
     doc.text(
       `Period: ${format(range.from, "dd.MM.yyyy HH:mm")} — ${format(range.to, "dd.MM.yyyy HH:mm")} UTC`,
       40, 55,
     );
-
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(11);
     let y = 95;
     doc.text(`Total Requests: ${fmtNumber(totalRequests)}`, 40, y); y += 16;
     doc.text(`Total Input Tokens: ${fmtNumber(totalInput)}`, 40, y); y += 16;
     doc.text(`Total Output Tokens: ${fmtNumber(totalOutput)}`, 40, y); y += 16;
-    doc.setTextColor(34, 139, 230);
-    doc.text(`Estimated Cost: ${fmtUSD(totalCost)}`, 40, y); y += 6;
-    doc.setTextColor(120, 120, 120);
-    doc.setFontSize(8);
-    doc.text(
-      "Costs use the same tariff sheet as the Billing section.",
-      40, y + 8,
-    );
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(11);
+    doc.text(`Active Clients: ${activeClients}`, 40, y); y += 6;
 
     autoTable(doc, {
-      startY: y + 22,
-      head: [["Model", "Requests", "Share %"]],
-      body: reqByModel.map((r) => [r.model, fmtNumber(r.value), `${r.percent}%`]),
+      startY: y + 12,
+      head: [["Client", "Requests", "Input Tokens", "Output Tokens"]],
+      body: clientsSorted.map((c) => [c.client, fmtNumber(c.requests), fmtNumber(c.input), fmtNumber(c.output)]),
       headStyles: { fillColor: [34, 211, 238], textColor: 15 },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
-
     autoTable(doc, {
-      head: [["Model", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
-      body: tokensByModel.map((r) => [
-        r.model, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
-      ]),
-      foot: [[
-        "Total",
-        fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0)),
-        fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0)),
-        fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0)),
-        fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0)),
-      ]],
+      head: [["Model", "Type", "Requests", "Input Tokens", "Output Tokens"]],
+      body: byModel.map((m) => [m.model, m.type, fmtNumber(m.requests), fmtNumber(m.input), fmtNumber(m.output)]),
       headStyles: { fillColor: [168, 85, 247], textColor: 255 },
-      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
       styles: { fontSize: 9 },
       margin: { left: 40, right: 40 },
     });
-
-    autoTable(doc, {
-      head: [["Member", "Requests", "Input Tokens", "Output Tokens", "Estimated Cost"]],
-      body: byMember.map((r) => [
-        r.member, fmtNumber(r.requests), fmtNumber(r.input), fmtNumber(r.output), fmtUSD(r.cost),
-      ]),
-      foot: [[
-        "Total",
-        fmtNumber(byMember.reduce((s, r) => s + r.requests, 0)),
-        fmtNumber(byMember.reduce((s, r) => s + r.input, 0)),
-        fmtNumber(byMember.reduce((s, r) => s + r.output, 0)),
-        fmtUSD(byMember.reduce((s, r) => s + r.cost, 0)),
-      ]],
-      headStyles: { fillColor: [34, 211, 238], textColor: 15 },
-      footStyles: { fillColor: [241, 245, 249], textColor: 15, fontStyle: "bold" },
-      styles: { fontSize: 9 },
-      margin: { left: 40, right: 40 },
-    });
-
-    autoTable(doc, {
-      head: [["Model", "Input $/1K", "Output $/1K", "Per request $"]],
-      body: ALL_MODELS.map((m) => [
-        m,
-        PRICING[m].inputPer1k.toFixed(4),
-        PRICING[m].outputPer1k.toFixed(4),
-        (PRICING[m].perRequest ?? 0).toFixed(4),
-      ]),
-      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
-      styles: { fontSize: 9 },
-      margin: { left: 40, right: 40 },
-    });
-
-    autoTable(doc, {
-      head: [["Time", "Requests"]],
-      body: reqOverTime.map((r) => [r.label, fmtNumber(r.requests)]),
-      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
-      styles: { fontSize: 8 },
-      margin: { left: 40, right: 40 },
-    });
-
-    doc.save(`cloudsway_analytics_${periodLabel}.pdf`);
+    doc.save(`nexagen_analytics_${periodLabel}.pdf`);
   };
 
   return (
@@ -445,12 +426,14 @@ const DashboardPage = () => {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Cloudsway MaaS API · аналитика запросов, токенов и моделей
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            Аналитика запросов, токенов и моделей
+            <span className="inline-flex items-center gap-1 text-[11px] text-primary/80">
+              <RefreshCw className="h-3 w-3" /> обновление раз в 10 минут
+            </span>
           </p>
         </div>
 
-        {/* Export menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="glow" size="sm" className="h-9">
@@ -478,7 +461,7 @@ const DashboardPage = () => {
           </div>
 
           <Select value={preset} onValueChange={(v) => setPreset(v as RangePreset)}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-[170px] h-9">
               <SelectValue placeholder="Period" />
             </SelectTrigger>
             <SelectContent>
@@ -517,36 +500,65 @@ const DashboardPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="auto">Auto ({effGran})</SelectItem>
+              <SelectItem value="10min">10 minutes</SelectItem>
               <SelectItem value="hour">Hour</SelectItem>
               <SelectItem value="day">Day</SelectItem>
               <SelectItem value="week">Week</SelectItem>
-              <SelectItem value="month">Month</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Type chips */}
+          <div className="flex items-center gap-1">
+            {(["text", "image", "video"] as ModelType[]).map((t) => {
+              const Icon = TYPE_ICON[t];
+              const on = selectedTypes.includes(t);
+              return (
+                <button
+                  key={t}
+                  onClick={() => toggleType(t)}
+                  className={`h-9 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 transition-colors ${
+                    on
+                      ? "border-transparent text-background"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={on ? { backgroundColor: TYPE_COLOR[t] } : undefined}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {t}
+                </button>
+              );
+            })}
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 font-normal">
-                Models: {selectedModels.length} / {ALL_MODELS.length}
+                Models: {selectedModels.length} / {MODEL_NAMES.length}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" className="w-64 max-h-[380px] overflow-auto">
               <DropdownMenuLabel>Filter models</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {ALL_MODELS.map((m) => (
                 <DropdownMenuCheckboxItem
-                  key={m}
-                  checked={selectedModels.includes(m)}
-                  onCheckedChange={() => toggleModel(m)}
+                  key={m.name}
+                  checked={selectedModels.includes(m.name)}
+                  onCheckedChange={() =>
+                    setSelectedModels((prev) =>
+                      prev.includes(m.name) ? prev.filter((x) => x !== m.name) : [...prev, m.name],
+                    )
+                  }
                   onSelect={(e) => e.preventDefault()}
                 >
                   <span
                     className="w-2 h-2 rounded-full mr-2 inline-block"
-                    style={{ backgroundColor: MODEL_COLORS[m] }}
+                    style={{ backgroundColor: TYPE_COLOR[m.type] }}
                   />
-                  {m}
+                  {m.name}
                 </DropdownMenuCheckboxItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSelectedModels([...MODEL_NAMES])}>Select all</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedModels([])}>Clear</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -554,29 +566,29 @@ const DashboardPage = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 font-normal">
                 <Users className="h-3.5 w-3.5 mr-1.5" />
-                Members: {selectedMembers.length} / {ALL_MEMBERS.length}
+                Clients: {selectedClients.length} / {CLIENTS.length}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel>Filter team members</DropdownMenuLabel>
+            <DropdownMenuContent align="start" className="w-64 max-h-[380px] overflow-auto">
+              <DropdownMenuLabel>Filter clients</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {ALL_MEMBERS.map((m) => (
+              {CLIENTS.map((c) => (
                 <DropdownMenuCheckboxItem
-                  key={m}
-                  checked={selectedMembers.includes(m)}
-                  onCheckedChange={() => toggleMember(m)}
+                  key={c}
+                  checked={selectedClients.includes(c)}
+                  onCheckedChange={() =>
+                    setSelectedClients((prev) =>
+                      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+                    )
+                  }
                   onSelect={(e) => e.preventDefault()}
                 >
-                  {m}
+                  {c}
                 </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setSelectedMembers([...ALL_MEMBERS])}>
-                Select all
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelectedMembers([])}>
-                Clear
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedClients([...CLIENTS])}>Select all</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedClients([])}>Clear</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -586,320 +598,317 @@ const DashboardPage = () => {
         </CardContent>
       </Card>
 
-      {/* Member consumption summary */}
-      <Card className="card-glow">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-            <Users className="h-3.5 w-3.5" /> Consumption by Member
-            <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
-              Estimated cost · matches Billing tariff
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead className="text-right">Requests</TableHead>
-                <TableHead className="text-right">Input Tokens</TableHead>
-                <TableHead className="text-right">Output Tokens</TableHead>
-                <TableHead className="text-right">Estimated Cost</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {byMember.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-6">
-                    Нет данных по выбранным фильтрам
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {byMember.map((r) => (
-                    <TableRow key={r.member}>
-                      <TableCell className="font-medium">{r.member}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-medium text-primary">
-                        {fmtUSD(r.cost)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="border-t-2 border-border bg-secondary/30">
-                    <TableCell className="font-semibold text-foreground">Total</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {fmtNumber(byMember.reduce((s, r) => s + r.requests, 0))}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {fmtNumber(byMember.reduce((s, r) => s + r.input, 0))}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {fmtNumber(byMember.reduce((s, r) => s + r.output, 0))}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold gradient-text">
-                      {fmtUSD(byMember.reduce((s, r) => s + r.cost, 0))}
-                    </TableCell>
-                  </TableRow>
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* KPI row */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="card-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5" /> Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold gradient-text tabular-nums">{fmtNumber(totalRequests)}</div>
+            <p className="text-xs text-muted-foreground mt-1">за выбранный период</p>
+          </CardContent>
+        </Card>
+        <Card className="card-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <ArrowDownToLine className="h-3.5 w-3.5" /> Input tokens
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary tabular-nums">{compact(totalInput)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{fmtNumber(totalInput)}</p>
+          </CardContent>
+        </Card>
+        <Card className="card-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <ArrowUpFromLine className="h-3.5 w-3.5" /> Output tokens
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-accent tabular-nums">{compact(totalOutput)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{fmtNumber(totalOutput)}</p>
+          </CardContent>
+        </Card>
+        <Card className="card-glow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              <Users className="h-3.5 w-3.5" /> Active clients
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground tabular-nums">
+              {activeClients}<span className="text-base text-muted-foreground"> / {CLIENTS.length}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">делали запросы в этот период</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Tabs: Requests / Tokens / Models */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as typeof activeTab); setPage(0); }}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="requests" className="gap-2">
-            <Activity className="h-3.5 w-3.5" /> Requests
+          <TabsTrigger value="overview" className="gap-2">
+            <Activity className="h-3.5 w-3.5" /> Overview
           </TabsTrigger>
-          <TabsTrigger value="tokens" className="gap-2">
-            <ArrowDownToLine className="h-3.5 w-3.5" /> Tokens
+          <TabsTrigger value="clients" className="gap-2">
+            <Users className="h-3.5 w-3.5" /> Clients
           </TabsTrigger>
           <TabsTrigger value="models" className="gap-2">
             <Zap className="h-3.5 w-3.5" /> Models
           </TabsTrigger>
         </TabsList>
 
-        {/* ============ TAB 1: REQUESTS ============ */}
-        <TabsContent value="requests" className="space-y-4 mt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="card-glow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="h-3.5 w-3.5" /> Total Requests
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold gradient-text tabular-nums">
-                  {fmtNumber(totalRequests)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">за выбранный период</p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-glow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                  <DollarSign className="h-3.5 w-3.5" /> Estimated Cost
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold text-primary tabular-nums">
-                  {fmtUSD(totalCost)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  по тарифу из раздела Billing
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
+        {/* ---------- OVERVIEW ---------- */}
+        <TabsContent value="overview" className="space-y-4 mt-4">
           <Card className="card-glow">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">
-                Requests over Time
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <RTooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="requests" stroke="hsl(var(--primary))" strokeWidth={2}
-                    dot={{ r: 3, fill: "hsl(var(--primary))" }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">
-                Requests by Model
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={reqByModel} dataKey="value" nameKey="model" cx="50%" cy="50%"
-                        innerRadius={60} outerRadius={95} paddingAngle={2}
-                        label={({ model, percent }) => `${model} ${percent}%`} labelLine={false}>
-                        {reqByModel.map((entry) => (
-                          <Cell key={entry.model} fill={MODEL_COLORS[entry.model]} />
-                        ))}
-                      </Pie>
-                      <RTooltip contentStyle={tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Model</TableHead>
-                        <TableHead className="text-right">Requests</TableHead>
-                        <TableHead className="text-right">Share</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reqByModel.map((r) => (
-                        <TableRow key={r.model}>
-                          <TableCell className="font-medium flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: MODEL_COLORS[r.model] }} />
-                            {r.model}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtNumber(r.value)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{r.percent}%</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ============ TAB 2: TOKENS ============ */}
-        <TabsContent value="tokens" className="space-y-4 mt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="card-glow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                  <ArrowDownToLine className="h-3.5 w-3.5" /> Total Input Tokens
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold text-primary tabular-nums">
-                  {fmtNumber(totalInput)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">входящие токены</p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-glow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                  <ArrowUpFromLine className="h-3.5 w-3.5" /> Total Output Tokens
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold text-accent tabular-nums">
-                  {fmtNumber(totalOutput)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">исходящие токены</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">
-                Token Usage over Time
+                Requests over time · granularity: {effGran}
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tokensOverTime} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
+                <AreaChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 20, left: 0 }}>
                   <defs>
-                    <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.6} />
-                      <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.05} />
+                    <linearGradient id="gReq" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Tokens", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} minTickGap={40} />
+                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
                   <RTooltip contentStyle={tooltipStyle} formatter={(v: number) => fmtNumber(v)} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Area type="monotone" dataKey="input" name="Input" stroke="hsl(var(--primary))" fill="url(#gIn)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="output" name="Output" stroke="hsl(var(--accent))" fill="url(#gOut)" strokeWidth={2} />
+                  <Area type="monotone" dataKey="requests" name="Requests" stroke="hsl(var(--primary))" fill="url(#gReq)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="card-glow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Tokens over time</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={reqOverTime} margin={{ top: 10, right: 12, bottom: 20, left: 0 }}>
+                    <defs>
+                      <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} minTickGap={40} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} tickFormatter={(v) => compact(v)} />
+                    <RTooltip contentStyle={tooltipStyle} formatter={(v: number) => fmtNumber(v)} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Area type="monotone" dataKey="input" name="Input" stroke="hsl(var(--primary))" fill="url(#gIn)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="output" name="Output" stroke="hsl(var(--accent))" fill="url(#gOut)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="card-glow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Requests by modality</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={byType.filter((t) => t.requests > 0)}
+                      dataKey="requests"
+                      nameKey="type"
+                      cx="50%" cy="50%"
+                      innerRadius={55} outerRadius={95} paddingAngle={2}
+                      label={({ type, requests }) => `${type} · ${requests}`}
+                      labelLine={false}
+                    >
+                      {byType.map((entry) => (
+                        <Cell key={entry.type} fill={TYPE_COLOR[entry.type]} />
+                      ))}
+                    </Pie>
+                    <RTooltip contentStyle={tooltipStyle} formatter={(v: number) => fmtNumber(v)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ---------- CLIENTS ---------- */}
+        <TabsContent value="clients" className="space-y-4 mt-4">
+          {/* Top-5 leaderboard */}
           <Card className="card-glow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">
-                Tokens by Model
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <Trophy className="h-3.5 w-3.5 text-primary" /> Top clients by requests
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={tokensByModel} margin={{ top: 10, right: 12, bottom: 10, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="model" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Tokens", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <RTooltip contentStyle={tooltipStyle} formatter={(v: number) => fmtNumber(v)} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="input" name="Input" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="output" name="Output" stackId="a" fill="hsl(var(--accent))" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-5">
+                {topClients.map((c, i) => (
+                  <div key={c.client} className="rounded-lg border border-border bg-secondary/30 p-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">#{i + 1}</span>
+                      <span className="text-[10px] text-muted-foreground">{compact(c.input + c.output)} tok</span>
+                    </div>
+                    <div className="text-sm font-medium text-foreground truncate">{c.client}</div>
+                    <div className="text-xl font-bold gradient-text tabular-nums">{fmtNumber(c.requests)}</div>
+                    <div className="h-8 -mx-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={c.spark} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                          <Area type="monotone" dataKey="v" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.25)" strokeWidth={1.5} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="h-1 rounded-full bg-secondary overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${(c.requests / maxTopReq) * 100}%`, background: "var(--gradient-primary)" }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Compact searchable table */}
+          <Card className="card-glow">
+            <CardHeader className="pb-2 flex flex-row items-center gap-3 flex-wrap">
+              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                <Users className="h-3.5 w-3.5" /> All clients · {clientsSorted.length}
+              </CardTitle>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={clientQuery}
+                    onChange={(e) => { setClientQuery(e.target.value); setPage(0); }}
+                    placeholder="Search client…"
+                    className="h-8 pl-8 w-[200px] text-xs"
+                  />
+                </div>
+                <Select value={clientSort} onValueChange={(v) => setClientSort(v as typeof clientSort)}>
+                  <SelectTrigger className="h-8 w-[160px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="requests">Sort: Requests</SelectItem>
+                    <SelectItem value="input">Sort: Input tokens</SelectItem>
+                    <SelectItem value="output">Sort: Output tokens</SelectItem>
+                    <SelectItem value="total">Sort: Total tokens</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Requests</TableHead>
+                    <TableHead className="text-right">Input</TableHead>
+                    <TableHead className="text-right">Output</TableHead>
+                    <TableHead className="w-[200px]">Distribution</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-6">
+                        Нет данных
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pagedClients.map((c) => {
+                      const total = c.input + c.output || 1;
+                      const inPct = (c.input / total) * 100;
+                      return (
+                        <TableRow key={c.client}>
+                          <TableCell className="font-medium">{c.client}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtNumber(c.requests)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-primary">{compact(c.input)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-accent">{compact(c.output)}</TableCell>
+                          <TableCell>
+                            <div className="h-2 rounded-full bg-secondary overflow-hidden flex">
+                              <div className="h-full bg-primary" style={{ width: `${inPct}%` }} />
+                              <div className="h-full bg-accent" style={{ width: `${100 - inPct}%` }} />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-end gap-2 mt-3 text-xs text-muted-foreground">
+                <span>Page {page + 1} / {totalPages}</span>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* ============ TAB 3: MODELS ============ */}
+        {/* ---------- MODELS ---------- */}
         <TabsContent value="models" className="space-y-4 mt-4">
           <Card className="card-glow">
-            <CardHeader className="pb-2 flex-row items-center justify-between">
-              <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                <Zap className="h-3.5 w-3.5" /> Model Usage Trend
-              </CardTitle>
-              <div className="flex gap-1 flex-wrap">
-                {ALL_MODELS.filter((m) => selectedModels.includes(m)).map((m) => (
-                  <Badge key={m} variant="outline" className="text-[10px] gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MODEL_COLORS[m] }} />
-                    {m}
-                  </Badge>
-                ))}
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Requests by model</CardTitle>
             </CardHeader>
-            <CardContent className="h-[360px]">
+            <CardContent className="h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={modelTrend} margin={{ top: 10, right: 12, bottom: 24, left: 0 }}>
+                <BarChart data={byModel} layout="vertical" margin={{ top: 10, right: 20, bottom: 10, left: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Time", position: "insideBottom", offset: -10, fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false}
-                    label={{ value: "Requests", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-                  <RTooltip contentStyle={tooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  {ALL_MODELS.filter((m) => selectedModels.includes(m)).map((m) => (
-                    <Line key={m} type="monotone" dataKey={m} stroke={MODEL_COLORS[m]} strokeWidth={2}
-                      dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
-                  ))}
-                </LineChart>
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="model"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                    width={100}
+                  />
+                  <RTooltip contentStyle={tooltipStyle} formatter={(v: number) => fmtNumber(v)} />
+                  <Bar dataKey="requests" radius={[0, 6, 6, 0]}>
+                    {byModel.map((m) => (
+                      <Cell key={m.model} fill={TYPE_COLOR[m.type]} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Cost by Model — matches Billing tariff */}
           <Card className="card-glow">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                <DollarSign className="h-3.5 w-3.5" /> Estimated Cost by Model
-                <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground">
-                  Tariff: input/output $/1K + per-request fee
-                </span>
+                Models breakdown
+                <div className="ml-auto flex gap-1">
+                  {(["text", "image", "video"] as ModelType[]).map((t) => (
+                    <Badge key={t} variant="outline" className="text-[10px] gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TYPE_COLOR[t] }} />
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -907,64 +916,34 @@ const DashboardPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Model</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead className="text-right">Requests</TableHead>
-                    <TableHead className="text-right">Input</TableHead>
-                    <TableHead className="text-right">Output</TableHead>
-                    <TableHead className="text-right">Input $/1K</TableHead>
-                    <TableHead className="text-right">Output $/1K</TableHead>
-                    <TableHead className="text-right">Per req $</TableHead>
-                    <TableHead className="text-right">Estimated Cost</TableHead>
+                    <TableHead className="text-right">Input Tokens</TableHead>
+                    <TableHead className="text-right">Output Tokens</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tokensByModel.length === 0 ? (
+                  {byModel.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground text-sm py-6">
-                        Нет данных по выбранным фильтрам
+                      <TableCell colSpan={5} className="text-center text-muted-foreground text-sm py-6">
+                        Нет данных
                       </TableCell>
                     </TableRow>
                   ) : (
-                    <>
-                      {tokensByModel.map((r) => (
-                        <TableRow key={r.model}>
-                          <TableCell className="font-medium flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: MODEL_COLORS[r.model] }} />
-                            {r.model}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtNumber(r.requests)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtNumber(r.input)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtNumber(r.output)}</TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            ${PRICING[r.model].inputPer1k.toFixed(4)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            ${PRICING[r.model].outputPer1k.toFixed(4)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            ${(PRICING[r.model].perRequest ?? 0).toFixed(4)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums font-medium text-primary">
-                            {fmtUSD(r.cost)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      <TableRow className="border-t-2 border-border bg-secondary/30">
-                        <TableCell className="font-semibold text-foreground">Total</TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold">
-                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.requests, 0))}
+                    byModel.map((m) => (
+                      <TableRow key={m.model}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLOR[m.type] }} />
+                          {m.model}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold">
-                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.input, 0))}
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] capitalize">{m.type}</Badge>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold">
-                          {fmtNumber(tokensByModel.reduce((s, r) => s + r.output, 0))}
-                        </TableCell>
-                        <TableCell colSpan={3} />
-                        <TableCell className="text-right tabular-nums font-semibold gradient-text">
-                          {fmtUSD(tokensByModel.reduce((s, r) => s + r.cost, 0))}
-                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtNumber(m.requests)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-primary">{fmtNumber(m.input)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-accent">{fmtNumber(m.output)}</TableCell>
                       </TableRow>
-                    </>
+                    ))
                   )}
                 </TableBody>
               </Table>
