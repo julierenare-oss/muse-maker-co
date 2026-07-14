@@ -196,6 +196,7 @@ const fmtTokens = (n?: number) =>
 const TeamPage = () => {
   const [members, setMembers] = useState<TeamMember[]>(initialMembers);
   const [invitations, setInvitations] = useState<Invitation[]>(initialInvitations);
+  const [requests, setRequests] = useState<BudgetRequest[]>(initialRequests);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("member");
   const [editing, setEditing] = useState<TeamMember | null>(null);
@@ -232,6 +233,33 @@ const TeamPage = () => {
     toast({ title: "Настройки сохранены", description: updated.username });
     setEditing(null);
   };
+
+  const approveRequest = (id: string) => {
+    const req = requests.find((r) => r.id === id);
+    if (!req) return;
+    setMembers((prev) =>
+      prev.map((m) => {
+        if (m.id !== req.memberId) return m;
+        const budget = { ...m.limits.budget };
+        if (req.period === "day") budget.dailyUsd = req.requestedUsd;
+        else budget.monthlyUsd = req.requestedUsd;
+        return { ...m, limits: { ...m.limits, budget } };
+      }),
+    );
+    setRequests((p) => p.map((r) => (r.id === id ? { ...r, status: "approved" } : r)));
+    toast({
+      title: "Запрос одобрен",
+      description: `${req.memberName}: новый лимит $${req.requestedUsd}/${req.period === "day" ? "день" : "мес"}`,
+    });
+  };
+
+  const rejectRequest = (id: string) => {
+    const req = requests.find((r) => r.id === id);
+    setRequests((p) => p.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
+    if (req) toast({ title: "Запрос отклонён", description: req.memberName });
+  };
+
+  const pendingRequests = requests.filter((r) => r.status === "pending");
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
