@@ -11,6 +11,9 @@ import {
   DollarSign,
   Clock,
   Cpu,
+  Check,
+  TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
