@@ -11,6 +11,9 @@ import {
   DollarSign,
   Clock,
   Cpu,
+  Check,
+  TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -143,6 +146,47 @@ const initialInvitations: Invitation[] = [
   },
 ];
 
+interface BudgetRequest {
+  id: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  period: "day" | "month";
+  currentUsd?: number;
+  requestedUsd: number;
+  reason: string;
+  createdAt: string;
+  status: "pending" | "approved" | "rejected";
+}
+
+const initialRequests: BudgetRequest[] = [
+  {
+    id: "r1",
+    memberId: "1",
+    memberName: "j.rybakova",
+    memberEmail: "j.rybakova@cdnvideo.ru",
+    period: "month",
+    currentUsd: 300,
+    requestedUsd: 500,
+    reason: "Заканчивается бюджет на генерацию баннеров к запуску нового продукта — нужно ещё ~$200 до конца месяца.",
+    createdAt: "14.07.2026, 11:24",
+    status: "pending",
+  },
+  {
+    id: "r2",
+    memberId: "1",
+    memberName: "j.rybakova",
+    memberEmail: "j.rybakova@cdnvideo.ru",
+    period: "day",
+    currentUsd: 20,
+    requestedUsd: 50,
+    reason: "Готовим большой батч раскадровок сегодня к вечеру.",
+    createdAt: "13.07.2026, 09:12",
+    status: "pending",
+  },
+];
+
+
 const fmtUsd = (n?: number) =>
   n == null ? "∞" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
@@ -152,6 +196,7 @@ const fmtTokens = (n?: number) =>
 const TeamPage = () => {
   const [members, setMembers] = useState<TeamMember[]>(initialMembers);
   const [invitations, setInvitations] = useState<Invitation[]>(initialInvitations);
+  const [requests, setRequests] = useState<BudgetRequest[]>(initialRequests);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("member");
   const [editing, setEditing] = useState<TeamMember | null>(null);
@@ -188,6 +233,33 @@ const TeamPage = () => {
     toast({ title: "Настройки сохранены", description: updated.username });
     setEditing(null);
   };
+
+  const approveRequest = (id: string) => {
+    const req = requests.find((r) => r.id === id);
+    if (!req) return;
+    setMembers((prev) =>
+      prev.map((m) => {
+        if (m.id !== req.memberId) return m;
+        const budget = { ...m.limits.budget };
+        if (req.period === "day") budget.dailyUsd = req.requestedUsd;
+        else budget.monthlyUsd = req.requestedUsd;
+        return { ...m, limits: { ...m.limits, budget } };
+      }),
+    );
+    setRequests((p) => p.map((r) => (r.id === id ? { ...r, status: "approved" } : r)));
+    toast({
+      title: "Запрос одобрен",
+      description: `${req.memberName}: новый лимит $${req.requestedUsd}/${req.period === "day" ? "день" : "мес"}`,
+    });
+  };
+
+  const rejectRequest = (id: string) => {
+    const req = requests.find((r) => r.id === id);
+    setRequests((p) => p.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)));
+    if (req) toast({ title: "Запрос отклонён", description: req.memberName });
+  };
+
+  const pendingRequests = requests.filter((r) => r.status === "pending");
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
@@ -252,6 +324,99 @@ const TeamPage = () => {
             />
           ))}
         </div>
+      </section>
+
+      {/* Budget requests */}
+      <section className="bg-card border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-medium text-foreground">Запросы на увеличение лимитов</h2>
+            {pendingRequests.length > 0 && (
+              <Badge className="bg-primary/20 text-primary border-primary/30">
+                {pendingRequests.length}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">От участников команды</p>
+        </div>
+
+        {requests.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет запросов</p>
+        ) : (
+          <div className="space-y-3">
+            {requests.map((r) => {
+              const delta = r.currentUsd != null ? r.requestedUsd - r.currentUsd : r.requestedUsd;
+              const periodLbl = r.period === "day" ? "день" : "мес";
+              return (
+                <div
+                  key={r.id}
+                  className={cn(
+                    "border rounded-lg p-4 transition-colors",
+                    r.status === "pending"
+                      ? "border-primary/30 bg-primary/[0.03]"
+                      : "border-border/70 opacity-70",
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground truncate">{r.memberName}</p>
+                        <span className="text-xs text-muted-foreground">{r.memberEmail}</span>
+                        {r.status === "approved" && (
+                          <Badge variant="outline" className="text-emerald-400 border-emerald-400/40">
+                            Одобрено
+                          </Badge>
+                        )}
+                        {r.status === "rejected" && (
+                          <Badge variant="outline" className="text-muted-foreground border-border">
+                            Отклонено
+                          </Badge>
+                        )}
+                        {r.status === "pending" && (
+                          <Badge variant="outline" className="text-amber-400 border-amber-400/40">
+                            Ожидает ответа
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-sm">
+                        <span className="text-muted-foreground">
+                          {r.currentUsd != null ? `$${r.currentUsd}` : "∞"}/{periodLbl}
+                        </span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="font-semibold text-foreground">
+                          ${r.requestedUsd}/{periodLbl}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          +${delta}
+                        </Badge>
+                      </div>
+                      <div className="flex items-start gap-1.5 mt-2 text-xs text-muted-foreground">
+                        <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <p className="leading-relaxed">{r.reason}</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1.5">Отправлено {r.createdAt}</p>
+                    </div>
+                    {r.status === "pending" && (
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <Button variant="glow" size="sm" onClick={() => approveRequest(r.id)}>
+                          <Check className="h-4 w-4 mr-1" />
+                          Одобрить
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => rejectRequest(r.id)}>
+                          <X className="h-4 w-4 mr-1" />
+                          Отклонить
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Invitations */}
