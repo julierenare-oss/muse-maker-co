@@ -326,6 +326,99 @@ const TeamPage = () => {
         </div>
       </section>
 
+      {/* Budget requests */}
+      <section className="bg-card border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-medium text-foreground">Запросы на увеличение лимитов</h2>
+            {pendingRequests.length > 0 && (
+              <Badge className="bg-primary/20 text-primary border-primary/30">
+                {pendingRequests.length}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">От участников команды</p>
+        </div>
+
+        {requests.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Нет запросов</p>
+        ) : (
+          <div className="space-y-3">
+            {requests.map((r) => {
+              const delta = r.currentUsd != null ? r.requestedUsd - r.currentUsd : r.requestedUsd;
+              const periodLbl = r.period === "day" ? "день" : "мес";
+              return (
+                <div
+                  key={r.id}
+                  className={cn(
+                    "border rounded-lg p-4 transition-colors",
+                    r.status === "pending"
+                      ? "border-primary/30 bg-primary/[0.03]"
+                      : "border-border/70 opacity-70",
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrendingUp className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground truncate">{r.memberName}</p>
+                        <span className="text-xs text-muted-foreground">{r.memberEmail}</span>
+                        {r.status === "approved" && (
+                          <Badge variant="outline" className="text-emerald-400 border-emerald-400/40">
+                            Одобрено
+                          </Badge>
+                        )}
+                        {r.status === "rejected" && (
+                          <Badge variant="outline" className="text-muted-foreground border-border">
+                            Отклонено
+                          </Badge>
+                        )}
+                        {r.status === "pending" && (
+                          <Badge variant="outline" className="text-amber-400 border-amber-400/40">
+                            Ожидает ответа
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-sm">
+                        <span className="text-muted-foreground">
+                          {r.currentUsd != null ? `$${r.currentUsd}` : "∞"}/{periodLbl}
+                        </span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="font-semibold text-foreground">
+                          ${r.requestedUsd}/{periodLbl}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          +${delta}
+                        </Badge>
+                      </div>
+                      <div className="flex items-start gap-1.5 mt-2 text-xs text-muted-foreground">
+                        <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <p className="leading-relaxed">{r.reason}</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1.5">Отправлено {r.createdAt}</p>
+                    </div>
+                    {r.status === "pending" && (
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <Button variant="glow" size="sm" onClick={() => approveRequest(r.id)}>
+                          <Check className="h-4 w-4 mr-1" />
+                          Одобрить
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => rejectRequest(r.id)}>
+                          <X className="h-4 w-4 mr-1" />
+                          Отклонить
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Invitations */}
       <section className="bg-card border border-border rounded-xl p-6">
         <h2 className="text-base font-medium text-foreground mb-4">Приглашения</h2>
