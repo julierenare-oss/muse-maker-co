@@ -146,6 +146,47 @@ const initialInvitations: Invitation[] = [
   },
 ];
 
+interface BudgetRequest {
+  id: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  period: "day" | "month";
+  currentUsd?: number;
+  requestedUsd: number;
+  reason: string;
+  createdAt: string;
+  status: "pending" | "approved" | "rejected";
+}
+
+const initialRequests: BudgetRequest[] = [
+  {
+    id: "r1",
+    memberId: "1",
+    memberName: "j.rybakova",
+    memberEmail: "j.rybakova@cdnvideo.ru",
+    period: "month",
+    currentUsd: 300,
+    requestedUsd: 500,
+    reason: "Заканчивается бюджет на генерацию баннеров к запуску нового продукта — нужно ещё ~$200 до конца месяца.",
+    createdAt: "14.07.2026, 11:24",
+    status: "pending",
+  },
+  {
+    id: "r2",
+    memberId: "1",
+    memberName: "j.rybakova",
+    memberEmail: "j.rybakova@cdnvideo.ru",
+    period: "day",
+    currentUsd: 20,
+    requestedUsd: 50,
+    reason: "Готовим большой батч раскадровок сегодня к вечеру.",
+    createdAt: "13.07.2026, 09:12",
+    status: "pending",
+  },
+];
+
+
 const fmtUsd = (n?: number) =>
   n == null ? "∞" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
