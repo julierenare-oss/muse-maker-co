@@ -202,7 +202,7 @@ const HistoryPage = () => {
   const handleOpenConversation = async (conv: ConversationItem) => {
     setLoadingId(conv.uuid);
     try {
-      const msgs = await fetchConversationMessages(conv.uuid);
+      const msgs = await loadMessagesForConv(conv.uuid);
       const modality: ChatModality = conv.type || "text";
       loadConversation(conv.uuid, msgs as any[], modality);
       setModality(modality);
