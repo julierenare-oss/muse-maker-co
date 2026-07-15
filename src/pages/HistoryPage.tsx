@@ -102,7 +102,7 @@ const ProjectFiles = ({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all(conversations.map((c) => fetchConversationMessages(c.uuid).catch(() => [])))
+    Promise.all(conversations.map((c) => loadMessagesForConv(c.uuid).catch(() => [])))
       .then((all) => {
         if (cancelled) return;
         setMessages(all.flat());
