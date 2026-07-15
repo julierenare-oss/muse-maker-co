@@ -54,6 +54,17 @@ import {
 } from "@/lib/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FilesPanel from "@/components/FilesPanel";
+import {
+  MOCK_PROJECTS,
+  MOCK_CONVERSATIONS,
+  MOCK_MESSAGES_BY_CONV,
+  isMockId,
+} from "@/lib/mockProjects";
+
+const loadMessagesForConv = async (uuid: string) => {
+  if (isMockId(uuid)) return MOCK_MESSAGES_BY_CONV[uuid] || [];
+  return fetchConversationMessages(uuid);
+};
 
 const typeIcons: Record<string, typeof MessageSquare> = {
   text: MessageSquare,
