@@ -82,11 +82,17 @@ interface Props {
   messages: ChatMessage[];
   emptyHint?: string;
   dense?: boolean;
+  sourceFilter?: "user" | "assistant";
 }
 
-const FilesPanel = ({ messages, emptyHint, dense }: Props) => {
-  const files = useMemo(() => extractFiles(messages), [messages]);
+const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
+  const allFiles = useMemo(() => extractFiles(messages), [messages]);
+  const files = useMemo(
+    () => (sourceFilter ? allFiles.filter((f) => f.source === sourceFilter) : allFiles),
+    [allFiles, sourceFilter]
+  );
   const [filter, setFilter] = useState<FileKind | "all">("all");
+
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: files.length };

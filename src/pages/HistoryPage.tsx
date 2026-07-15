@@ -77,7 +77,15 @@ const formatDate = (iso: string) => {
   }
 };
 
-const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) => {
+const ProjectFiles = ({
+  conversations,
+  sourceFilter,
+  emptyHint,
+}: {
+  conversations: ConversationItem[];
+  sourceFilter?: "user" | "assistant";
+  emptyHint?: string;
+}) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -101,8 +109,15 @@ const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) 
       </div>
     );
   }
-  return <FilesPanel messages={messages as any} emptyHint="В диалогах этого проекта пока нет вложений или результатов." />;
+  return (
+    <FilesPanel
+      messages={messages as any}
+      sourceFilter={sourceFilter}
+      emptyHint={emptyHint || "В диалогах этого проекта пока нет вложений или результатов."}
+    />
+  );
 };
+
 
 const HistoryPage = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -345,15 +360,20 @@ const HistoryPage = () => {
           <Tabs defaultValue="conversations">
             <TabsList>
               <TabsTrigger value="conversations">Диалоги</TabsTrigger>
-              <TabsTrigger value="files">Файлы</TabsTrigger>
+              <TabsTrigger value="gallery">Галерея</TabsTrigger>
+              <TabsTrigger value="refs">Референсы</TabsTrigger>
             </TabsList>
             <TabsContent value="conversations" className="mt-4">
               <div className="space-y-3">{items.map(renderConversation)}</div>
             </TabsContent>
-            <TabsContent value="files" className="mt-4">
-              <ProjectFiles conversations={items} />
+            <TabsContent value="gallery" className="mt-4">
+              <ProjectFiles conversations={items} sourceFilter="assistant" emptyHint="В этом проекте пока нет сгенерированных результатов." />
+            </TabsContent>
+            <TabsContent value="refs" className="mt-4">
+              <ProjectFiles conversations={items} sourceFilter="user" emptyHint="В этом проекте пока нет загруженных референсов." />
             </TabsContent>
           </Tabs>
+
         )}
       </div>
     );

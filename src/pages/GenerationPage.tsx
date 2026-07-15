@@ -338,24 +338,51 @@ const GenerationPage = () => {
 
       <aside className="w-72 border-l border-primary/20 overflow-hidden hidden lg:flex flex-col">
         <Tabs defaultValue="params" className="flex-1 flex flex-col">
-          <TabsList className="m-3 grid grid-cols-2">
+          <TabsList className="m-3 grid grid-cols-3">
             <TabsTrigger value="params">Параметры</TabsTrigger>
-            <TabsTrigger value="files">
-              Файлы
+            <TabsTrigger value="results">
+              Результаты
               {(() => {
-                const n = messages.reduce((a, m) => a + (m.attachments?.length || 0), 0);
-                return n > 0 ? <span className="ml-1.5 text-[10px] opacity-70">{n}</span> : null;
+                const n = messages.reduce(
+                  (a, m) => a + (m.role === "assistant" ? m.attachments?.length || 0 : 0),
+                  0
+                );
+                return n > 0 ? <span className="ml-1 text-[10px] opacity-70">{n}</span> : null;
+              })()}
+            </TabsTrigger>
+            <TabsTrigger value="refs">
+              Референсы
+              {(() => {
+                const n = messages.reduce(
+                  (a, m) => a + (m.role === "user" ? m.attachments?.length || 0 : 0),
+                  0
+                );
+                return n > 0 ? <span className="ml-1 text-[10px] opacity-70">{n}</span> : null;
               })()}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="params" className="flex-1 overflow-y-auto px-4 pb-4 mt-0">
             <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
           </TabsContent>
-          <TabsContent value="files" className="flex-1 overflow-y-auto px-3 pb-4 mt-0">
-            <FilesPanel messages={messages} dense />
+          <TabsContent value="results" className="flex-1 overflow-y-auto px-3 pb-4 mt-0">
+            <FilesPanel
+              messages={messages}
+              dense
+              sourceFilter="assistant"
+              emptyHint="Здесь появятся результаты генерации из этого чата."
+            />
+          </TabsContent>
+          <TabsContent value="refs" className="flex-1 overflow-y-auto px-3 pb-4 mt-0">
+            <FilesPanel
+              messages={messages}
+              dense
+              sourceFilter="user"
+              emptyHint="Прикрепите файлы в промпте — они появятся здесь как референсы."
+            />
           </TabsContent>
         </Tabs>
       </aside>
+
     </div>
   );
 };
