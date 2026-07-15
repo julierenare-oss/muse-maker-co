@@ -9,7 +9,13 @@ import {
   Upload,
   Sparkles,
   ExternalLink,
+  Search,
+  LayoutGrid,
+  List as ListIcon,
+  ArrowDownAZ,
+  Clock,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/chatStore";
 
@@ -92,6 +98,10 @@ const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
     [allFiles, sourceFilter]
   );
   const [filter, setFilter] = useState<FileKind | "all">("all");
+  const [sourceChip, setSourceChip] = useState<"all" | "user" | "assistant">("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"recent" | "name" | "type">("recent");
+  const [view, setView] = useState<"grid" | "list">("grid");
 
 
   const counts = useMemo(() => {
@@ -101,7 +111,19 @@ const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
     return c;
   }, [files]);
 
-  const visible = filter === "all" ? files : files.filter((f) => f.kind === filter);
+  const visible = useMemo(() => {
+    let list = filter === "all" ? files : files.filter((f) => f.kind === filter);
+    if (!sourceFilter && sourceChip !== "all") {
+      list = list.filter((f) => f.source === sourceChip);
+    }
+    const q = query.trim().toLowerCase();
+    if (q) list = list.filter((f) => f.name.toLowerCase().includes(q) || f.ext.toLowerCase().includes(q));
+    if (sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    else if (sort === "type") list = [...list].sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
+    // "recent" keeps chronological order from messages (newest last → reverse)
+    else list = [...list].reverse();
+    return list;
+  }, [files, filter, sourceChip, sourceFilter, query, sort]);
 
   if (files.length === 0) {
     return (
@@ -113,6 +135,73 @@ const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Поиск по имени…"
+            className="h-8 pl-7 text-xs"
+          />
+        </div>
+
+        {!sourceFilter && (
+          <div className="inline-flex rounded-md border border-border bg-secondary/40 p-0.5">
+            {(["all", "user", "assistant"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSourceChip(s)}
+                className={cn(
+                  "px-2 py-1 text-[11px] rounded transition-colors",
+                  sourceChip === s ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+                title={s === "user" ? "Загруженные" : s === "assistant" ? "Сгенерированные" : "Все источники"}
+              >
+                {s === "all" ? "Все" : s === "user" ? "Загр." : "Сген."}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="inline-flex rounded-md border border-border bg-secondary/40 p-0.5">
+          {([
+            ["recent", Clock, "Свежие"],
+            ["name", ArrowDownAZ, "По имени"],
+            ["type", FileIcon, "По типу"],
+          ] as const).map(([key, Icon, label]) => (
+            <button
+              key={key}
+              onClick={() => setSort(key)}
+              title={label}
+              className={cn(
+                "px-2 py-1 rounded transition-colors",
+                sort === key ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
+
+        <div className="inline-flex rounded-md border border-border bg-secondary/40 p-0.5">
+          <button
+            onClick={() => setView("grid")}
+            title="Сетка"
+            className={cn("px-2 py-1 rounded", view === "grid" ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setView("list")}
+            title="Список"
+            className={cn("px-2 py-1 rounded", view === "list" ? "bg-primary/20 text-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
+            <ListIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-1.5">
         <Chip active={filter === "all"} onClick={() => setFilter("all")} label="Все" count={counts.all} />
         {ORDER.filter((k) => counts[k] > 0).map((k) => (
@@ -127,18 +216,28 @@ const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
         ))}
       </div>
 
-      <div
-        className={cn(
-          "gap-2",
-          dense
-            ? "columns-2 [&>*]:mb-2 [&>*]:break-inside-avoid"
-            : "columns-2 sm:columns-3 md:columns-4 [&>*]:mb-2 [&>*]:break-inside-avoid"
-        )}
-      >
-        {visible.map((f) => (
-          <FileCard key={f.url} file={f} />
-        ))}
-      </div>
+      {visible.length === 0 ? (
+        <div className="text-center py-8 text-xs text-muted-foreground">Ничего не найдено</div>
+      ) : view === "list" ? (
+        <div className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-secondary/30">
+          {visible.map((f) => (
+            <FileRow key={f.url} file={f} />
+          ))}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "gap-2",
+            dense
+              ? "columns-2 [&>*]:mb-2 [&>*]:break-inside-avoid"
+              : "columns-2 sm:columns-3 md:columns-4 [&>*]:mb-2 [&>*]:break-inside-avoid"
+          )}
+        >
+          {visible.map((f) => (
+            <FileCard key={f.url} file={f} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -228,6 +327,31 @@ const FileCard = ({ file }: { file: FileItem }) => {
       <div className="px-2 py-1.5 text-[11px] text-muted-foreground truncate" title={file.name}>
         {file.name}
       </div>
+    </div>
+  );
+};
+
+const FileRow = ({ file }: { file: FileItem }) => {
+  const meta = KIND_META[file.kind];
+  const SourceIcon = file.source === "user" ? Upload : Sparkles;
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 hover:bg-secondary/60 transition-colors">
+      <div className={cn("h-8 w-8 rounded flex items-center justify-center border shrink-0", meta.bg)}>
+        <meta.Icon className={cn("h-4 w-4", meta.color)} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs text-foreground truncate" title={file.name}>{file.name}</div>
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+          {file.ext || meta.label}
+        </div>
+      </div>
+      <SourceIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <a href={file.url} target="_blank" rel="noreferrer" className="p-1.5 rounded hover:bg-background text-muted-foreground hover:text-foreground" title="Открыть">
+        <ExternalLink className="h-3.5 w-3.5" />
+      </a>
+      <a href={file.url} download={file.name} className="p-1.5 rounded hover:bg-background text-muted-foreground hover:text-foreground" title="Скачать">
+        <Download className="h-3.5 w-3.5" />
+      </a>
     </div>
   );
 };

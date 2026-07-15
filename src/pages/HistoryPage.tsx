@@ -54,6 +54,17 @@ import {
 } from "@/lib/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FilesPanel from "@/components/FilesPanel";
+import {
+  MOCK_PROJECTS,
+  MOCK_CONVERSATIONS,
+  MOCK_MESSAGES_BY_CONV,
+  isMockId,
+} from "@/lib/mockProjects";
+
+const loadMessagesForConv = async (uuid: string) => {
+  if (isMockId(uuid)) return MOCK_MESSAGES_BY_CONV[uuid] || [];
+  return fetchConversationMessages(uuid);
+};
 
 const typeIcons: Record<string, typeof MessageSquare> = {
   text: MessageSquare,
@@ -91,7 +102,7 @@ const ProjectFiles = ({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all(conversations.map((c) => fetchConversationMessages(c.uuid).catch(() => [])))
+    Promise.all(conversations.map((c) => loadMessagesForConv(c.uuid).catch(() => [])))
       .then((all) => {
         if (cancelled) return;
         setMessages(all.flat());
@@ -144,11 +155,34 @@ const HistoryPage = () => {
 
   useEffect(() => {
     fetchConversations()
-      .then((items) => setConversations((items ?? []).filter((c: any) => c && c.uuid)))
-      .catch(console.error)
+      .then((items) => {
+        const real = (items ?? []).filter((c: any) => c && c.uuid);
+        // Merge mock conversations for demo/preview
+        const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
+        setConversations([...real, ...mockConvs]);
+      })
+      .catch((e) => {
+        console.error(e);
+        // On failure still show mocks
+        const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
+        setConversations(mockConvs);
+      })
       .finally(() => setLoading(false));
-    setProjects(getProjects());
-    setAssignments(getAssignments());
+
+    // Seed mock projects & their assignments (once)
+    const existing = getProjects();
+    const existingIds = new Set(existing.map((p) => p.id));
+    const merged = [...existing];
+    for (const p of MOCK_PROJECTS) {
+      if (!existingIds.has(p.id)) merged.push(p);
+    }
+    setProjects(merged);
+
+    const a = getAssignments();
+    for (const c of MOCK_CONVERSATIONS) {
+      a[c.uuid] = c.projectId;
+    }
+    setAssignments(a);
   }, []);
 
   const grouped = useMemo(() => {
@@ -168,7 +202,7 @@ const HistoryPage = () => {
   const handleOpenConversation = async (conv: ConversationItem) => {
     setLoadingId(conv.uuid);
     try {
-      const msgs = await fetchConversationMessages(conv.uuid);
+      const msgs = await loadMessagesForConv(conv.uuid);
       const modality: ChatModality = conv.type || "text";
       loadConversation(conv.uuid, msgs as any[], modality);
       setModality(modality);
@@ -184,7 +218,7 @@ const HistoryPage = () => {
     e.stopPropagation();
     setDeletingId(conv.uuid);
     try {
-      await deleteConversation(conv.uuid);
+      if (!isMockId(conv.uuid)) await deleteConversation(conv.uuid);
       setConversations((prev) => prev.filter((c) => c.uuid !== conv.uuid));
       assignConversation(conv.uuid, null);
       setAssignments(getAssignments());
