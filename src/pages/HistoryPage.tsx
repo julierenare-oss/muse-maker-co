@@ -345,15 +345,20 @@ const HistoryPage = () => {
           <Tabs defaultValue="conversations">
             <TabsList>
               <TabsTrigger value="conversations">Диалоги</TabsTrigger>
-              <TabsTrigger value="files">Файлы</TabsTrigger>
+              <TabsTrigger value="gallery">Галерея</TabsTrigger>
+              <TabsTrigger value="refs">Референсы</TabsTrigger>
             </TabsList>
             <TabsContent value="conversations" className="mt-4">
               <div className="space-y-3">{items.map(renderConversation)}</div>
             </TabsContent>
-            <TabsContent value="files" className="mt-4">
-              <ProjectFiles conversations={items} />
+            <TabsContent value="gallery" className="mt-4">
+              <ProjectFiles conversations={items} sourceFilter="assistant" emptyHint="В этом проекте пока нет сгенерированных результатов." />
+            </TabsContent>
+            <TabsContent value="refs" className="mt-4">
+              <ProjectFiles conversations={items} sourceFilter="user" emptyHint="В этом проекте пока нет загруженных референсов." />
             </TabsContent>
           </Tabs>
+
         )}
       </div>
     );
