@@ -9,7 +9,13 @@ import {
   Upload,
   Sparkles,
   ExternalLink,
+  Search,
+  LayoutGrid,
+  List as ListIcon,
+  ArrowDownAZ,
+  Clock,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/chatStore";
 
