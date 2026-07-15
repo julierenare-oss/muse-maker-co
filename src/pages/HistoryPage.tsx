@@ -218,7 +218,7 @@ const HistoryPage = () => {
     e.stopPropagation();
     setDeletingId(conv.uuid);
     try {
-      await deleteConversation(conv.uuid);
+      if (!isMockId(conv.uuid)) await deleteConversation(conv.uuid);
       setConversations((prev) => prev.filter((c) => c.uuid !== conv.uuid));
       assignConversation(conv.uuid, null);
       setAssignments(getAssignments());
