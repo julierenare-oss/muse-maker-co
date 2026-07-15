@@ -77,7 +77,15 @@ const formatDate = (iso: string) => {
   }
 };
 
-const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) => {
+const ProjectFiles = ({
+  conversations,
+  sourceFilter,
+  emptyHint,
+}: {
+  conversations: ConversationItem[];
+  sourceFilter?: "user" | "assistant";
+  emptyHint?: string;
+}) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -101,8 +109,15 @@ const ProjectFiles = ({ conversations }: { conversations: ConversationItem[] }) 
       </div>
     );
   }
-  return <FilesPanel messages={messages as any} emptyHint="В диалогах этого проекта пока нет вложений или результатов." />;
+  return (
+    <FilesPanel
+      messages={messages as any}
+      sourceFilter={sourceFilter}
+      emptyHint={emptyHint || "В диалогах этого проекта пока нет вложений или результатов."}
+    />
+  );
 };
+
 
 const HistoryPage = () => {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
