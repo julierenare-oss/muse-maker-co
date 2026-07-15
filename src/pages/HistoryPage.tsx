@@ -155,11 +155,34 @@ const HistoryPage = () => {
 
   useEffect(() => {
     fetchConversations()
-      .then((items) => setConversations((items ?? []).filter((c: any) => c && c.uuid)))
-      .catch(console.error)
+      .then((items) => {
+        const real = (items ?? []).filter((c: any) => c && c.uuid);
+        // Merge mock conversations for demo/preview
+        const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
+        setConversations([...real, ...mockConvs]);
+      })
+      .catch((e) => {
+        console.error(e);
+        // On failure still show mocks
+        const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
+        setConversations(mockConvs);
+      })
       .finally(() => setLoading(false));
-    setProjects(getProjects());
-    setAssignments(getAssignments());
+
+    // Seed mock projects & their assignments (once)
+    const existing = getProjects();
+    const existingIds = new Set(existing.map((p) => p.id));
+    const merged = [...existing];
+    for (const p of MOCK_PROJECTS) {
+      if (!existingIds.has(p.id)) merged.push(p);
+    }
+    setProjects(merged);
+
+    const a = getAssignments();
+    for (const c of MOCK_CONVERSATIONS) {
+      a[c.uuid] = c.projectId;
+    }
+    setAssignments(a);
   }, []);
 
   const grouped = useMemo(() => {
