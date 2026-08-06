@@ -456,26 +456,6 @@ const HistoryPage = () => {
   }
 
   // Grid view
-  const filteredProjects = useMemo(
-    () =>
-      query
-        ? projects.filter((p) => (p.name || "").toLowerCase().includes(query))
-        : projects,
-    [projects, query]
-  );
-  const filteredUnassigned = useMemo(
-    () =>
-      query
-        ? grouped.unassigned.filter(
-            (c) =>
-              (c.title || "").toLowerCase().includes(query) ||
-              (c.uuid || "").toLowerCase().includes(query) ||
-              (c.type || "").toLowerCase().includes(query)
-          )
-        : grouped.unassigned,
-    [grouped.unassigned, query]
-  );
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
