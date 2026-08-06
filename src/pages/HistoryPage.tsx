@@ -142,6 +142,9 @@ const HistoryPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [activeView, setActiveView] = useState<string | null>(null); // projectId | UNASSIGNED | null
+  const [search, setSearch] = useState("");
+
+  const query = search.trim().toLowerCase();
 
   const navigate = useNavigate();
   const { loadConversation, setModality, newConversation } = useChatStore();
