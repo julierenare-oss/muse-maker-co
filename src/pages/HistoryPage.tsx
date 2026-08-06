@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   History as HistoryIcon,
   Plus,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
