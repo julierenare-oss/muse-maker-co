@@ -519,7 +519,7 @@ const HistoryPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {projects.map((p) => {
+          {filteredProjects.map((p) => {
             const count = (grouped.byProject[p.id] || []).length;
             return (
               <div
@@ -562,7 +562,7 @@ const HistoryPage = () => {
             );
           })}
 
-          {grouped.unassigned.length > 0 && (
+          {filteredUnassigned.length > 0 && (
             <div
               className="group relative bg-card card-glow rounded-xl p-5 hover:bg-secondary/40 transition-colors cursor-pointer animate-slide-up border-dashed"
               onClick={() => setActiveView(UNASSIGNED)}
@@ -576,8 +576,8 @@ const HistoryPage = () => {
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Без проекта</span>
                 <span>
-                  {grouped.unassigned.length}{" "}
-                  {grouped.unassigned.length === 1 ? "диалог" : "диалогов"}
+                  {filteredUnassigned.length}{" "}
+                  {filteredUnassigned.length === 1 ? "диалог" : "диалогов"}
                 </span>
               </div>
             </div>
