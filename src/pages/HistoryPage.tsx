@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   History as HistoryIcon,
   Plus,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -141,6 +142,9 @@ const HistoryPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [activeView, setActiveView] = useState<string | null>(null); // projectId | UNASSIGNED | null
+  const [search, setSearch] = useState("");
+
+  const query = search.trim().toLowerCase();
 
   const navigate = useNavigate();
   const { loadConversation, setModality, newConversation } = useChatStore();
@@ -198,6 +202,24 @@ const HistoryPage = () => {
     }
     return { byProject, unassigned };
   }, [conversations, assignments, projects]);
+
+  const filteredProjects = useMemo(
+    () =>
+      query ? projects.filter((p) => (p.name || "").toLowerCase().includes(query)) : projects,
+    [projects, query]
+  );
+  const filteredUnassigned = useMemo(
+    () =>
+      query
+        ? grouped.unassigned.filter(
+            (c) =>
+              (c.title || "").toLowerCase().includes(query) ||
+              (c.uuid || "").toLowerCase().includes(query) ||
+              (c.type || "").toLowerCase().includes(query)
+          )
+        : grouped.unassigned,
+    [grouped.unassigned, query]
+  );
 
   const handleOpenConversation = async (conv: ConversationItem) => {
     setLoadingId(conv.uuid);
@@ -349,14 +371,22 @@ const HistoryPage = () => {
   if (activeView) {
     const isUnassigned = activeView === UNASSIGNED;
     const project = projects.find((p) => p.id === activeView);
-    const items = isUnassigned ? grouped.unassigned : grouped.byProject[activeView] || [];
+    const rawItems = isUnassigned ? grouped.unassigned : grouped.byProject[activeView] || [];
+    const items = query
+      ? rawItems.filter(
+          (c) =>
+            (c.title || "").toLowerCase().includes(query) ||
+            (c.uuid || "").toLowerCase().includes(query) ||
+            (c.type || "").toLowerCase().includes(query)
+        )
+      : rawItems;
     const title = isUnassigned ? "История" : project?.name || "Проект";
 
     return (
       <div className="p-6 space-y-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => setActiveView(null)}>
+            <Button variant="ghost" size="sm" onClick={() => { setActiveView(null); setSearch(""); }}>
               <ArrowLeft className="h-4 w-4" />
               Назад
             </Button>
@@ -364,26 +394,38 @@ const HistoryPage = () => {
               <h1 className="text-xl font-semibold text-foreground">{title}</h1>
               <p className="text-sm text-muted-foreground">
                 {items.length} {items.length === 1 ? "диалог" : "диалогов"}
+                {query && items.length !== rawItems.length && ` (всего ${rawItems.length})`}
               </p>
             </div>
           </div>
-          {!isUnassigned && project && (
-            <div className="flex items-center gap-2">
-              <Button variant="glow" size="sm" onClick={() => handleNewInProject(project.id)}>
-                <Plus className="h-4 w-4" />
-                Новый диалог
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteProject(project.id)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-                Удалить проект
-              </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Поиск по диалогам…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 pl-8 text-xs"
+              />
             </div>
-          )}
+            {!isUnassigned && project && (
+              <>
+                <Button variant="glow" size="sm" onClick={() => handleNewInProject(project.id)}>
+                  <Plus className="h-4 w-4" />
+                  Новый диалог
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteProject(project.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Удалить проект
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {items.length === 0 ? (
@@ -416,54 +458,66 @@ const HistoryPage = () => {
   // Grid view
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Projects</h1>
           <p className="text-sm text-muted-foreground">
-            Группируйте диалоги по проектам
+            {filteredProjects.length} {filteredProjects.length === 1 ? "проект" : "проектов"}
+            {query && filteredProjects.length !== projects.length && ` (всего ${projects.length})`}
           </p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button variant="glow" size="sm">
-              <FolderPlus className="h-4 w-4" />
-              Новый проект
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Создать проект</DialogTitle>
-            </DialogHeader>
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Название проекта"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
-              autoFocus
+              placeholder="Поиск по проектам и диалогам…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 pl-8 text-xs"
             />
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setCreateOpen(false)}>
-                Отмена
+          </div>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button variant="glow" size="sm">
+                <FolderPlus className="h-4 w-4" />
+                Новый проект
               </Button>
-              <Button onClick={handleCreateProject} disabled={!newName.trim()}>
-                Создать
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Создать проект</DialogTitle>
+              </DialogHeader>
+              <Input
+                placeholder="Название проекта"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
+                autoFocus
+              />
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+                  Отмена
+                </Button>
+                <Button onClick={handleCreateProject} disabled={!newName.trim()}>
+                  Создать
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
-      ) : projects.length === 0 && grouped.unassigned.length === 0 ? (
+      ) : filteredProjects.length === 0 && filteredUnassigned.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          Пока ничего нет. Создайте проект или начните новый диалог.
+          {query ? "Ничего не найдено." : "Пока ничего нет. Создайте проект или начните новый диалог."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {projects.map((p) => {
+          {filteredProjects.map((p) => {
             const count = (grouped.byProject[p.id] || []).length;
             return (
               <div
@@ -506,7 +560,7 @@ const HistoryPage = () => {
             );
           })}
 
-          {grouped.unassigned.length > 0 && (
+          {filteredUnassigned.length > 0 && (
             <div
               className="group relative bg-card card-glow rounded-xl p-5 hover:bg-secondary/40 transition-colors cursor-pointer animate-slide-up border-dashed"
               onClick={() => setActiveView(UNASSIGNED)}
@@ -520,8 +574,8 @@ const HistoryPage = () => {
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Без проекта</span>
                 <span>
-                  {grouped.unassigned.length}{" "}
-                  {grouped.unassigned.length === 1 ? "диалог" : "диалогов"}
+                  {filteredUnassigned.length}{" "}
+                  {filteredUnassigned.length === 1 ? "диалог" : "диалогов"}
                 </span>
               </div>
             </div>
