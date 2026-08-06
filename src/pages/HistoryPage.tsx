@@ -146,24 +146,6 @@ const HistoryPage = () => {
 
   const query = search.trim().toLowerCase();
 
-  const filteredProjects = useMemo(
-    () =>
-      query ? projects.filter((p) => (p.name || "").toLowerCase().includes(query)) : projects,
-    [projects, query]
-  );
-  const filteredUnassigned = useMemo(
-    () =>
-      query
-        ? grouped.unassigned.filter(
-            (c) =>
-              (c.title || "").toLowerCase().includes(query) ||
-              (c.uuid || "").toLowerCase().includes(query) ||
-              (c.type || "").toLowerCase().includes(query)
-          )
-        : grouped.unassigned,
-    [grouped.unassigned, query]
-  );
-
   const navigate = useNavigate();
   const { loadConversation, setModality, newConversation } = useChatStore();
 
