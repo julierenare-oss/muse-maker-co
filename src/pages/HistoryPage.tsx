@@ -367,93 +367,43 @@ const HistoryPage = () => {
     );
   };
 
-  // Drill-down view
+  // Drill-down view — bento workstation
   if (activeView) {
     const isUnassigned = activeView === UNASSIGNED;
     const project = projects.find((p) => p.id === activeView);
     const rawItems = isUnassigned ? grouped.unassigned : grouped.byProject[activeView] || [];
-    const items = query
-      ? rawItems.filter(
-          (c) =>
-            (c.title || "").toLowerCase().includes(query) ||
-            (c.uuid || "").toLowerCase().includes(query) ||
-            (c.type || "").toLowerCase().includes(query)
-        )
-      : rawItems;
     const title = isUnassigned ? "История" : project?.name || "Проект";
 
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => { setActiveView(null); setSearch(""); }}>
-              <ArrowLeft className="h-4 w-4" />
-              Назад
-            </Button>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-              <p className="text-sm text-muted-foreground">
-                {items.length} {items.length === 1 ? "диалог" : "диалогов"}
-                {query && items.length !== rawItems.length && ` (всего ${rawItems.length})`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Поиск по диалогам…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-8 pl-8 text-xs"
-              />
-            </div>
-            {!isUnassigned && project && (
-              <>
-                <Button variant="glow" size="sm" onClick={() => handleNewInProject(project.id)}>
-                  <Plus className="h-4 w-4" />
-                  Новый диалог
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteProject(project.id)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Удалить проект
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {items.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            Пока нет диалогов
-          </div>
-        ) : (
-          <Tabs defaultValue="conversations">
-            <TabsList>
-              <TabsTrigger value="conversations">Диалоги</TabsTrigger>
-              <TabsTrigger value="gallery">Галерея</TabsTrigger>
-              <TabsTrigger value="refs">Референсы</TabsTrigger>
-            </TabsList>
-            <TabsContent value="conversations" className="mt-4">
-              <div className="space-y-3">{items.map(renderConversation)}</div>
-            </TabsContent>
-            <TabsContent value="gallery" className="mt-4">
-              <ProjectFiles conversations={items} sourceFilter="assistant" emptyHint="В этом проекте пока нет сгенерированных результатов." />
-            </TabsContent>
-            <TabsContent value="refs" className="mt-4">
-              <ProjectFiles conversations={items} sourceFilter="user" emptyHint="В этом проекте пока нет загруженных референсов." />
-            </TabsContent>
-          </Tabs>
-
-        )}
-      </div>
+      <ProjectWorkspace
+        title={title}
+        createdAt={project?.createdAt}
+        isUnassigned={isUnassigned}
+        conversations={rawItems}
+        loadMessages={loadMessagesForConv as any}
+        openingId={loadingId}
+        onBack={() => {
+          setActiveView(null);
+          setSearch("");
+        }}
+        onOpenConversation={handleOpenConversation}
+        onNewChat={(text) => {
+          if (text) useChatStore.getState().setDraftPrompt(text);
+          if (isUnassigned) {
+            newConversation();
+            navigate("/app");
+          } else if (project) {
+            handleNewInProject(project.id);
+          }
+        }}
+        onDeleteProject={project ? () => handleDeleteProject(project.id) : undefined}
+        onDeleteConversation={(conv) =>
+          handleDelete({ stopPropagation: () => {} } as any, conv)
+        }
+      />
     );
   }
+
 
   // Grid view
   return (
