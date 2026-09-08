@@ -55,6 +55,8 @@ import {
 } from "@/lib/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FilesPanel from "@/components/FilesPanel";
+import ProjectWorkspace from "@/components/ProjectWorkspace";
+
 import {
   MOCK_PROJECTS,
   MOCK_CONVERSATIONS,
