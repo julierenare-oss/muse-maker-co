@@ -32,8 +32,17 @@ const GenerationPage = () => {
   const params = useChatParams();
 
   useEffect(() => {
+    if (draftPrompt) {
+      setPrompt(draftPrompt);
+      setDraftPrompt("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
 
   const handleModalityChange = (m: ChatModality) => {
     if (m !== modality) {
