@@ -89,9 +89,11 @@ interface Props {
   emptyHint?: string;
   dense?: boolean;
   sourceFilter?: "user" | "assistant";
+  hideControls?: boolean;
 }
 
-const FilesPanel = ({ messages, emptyHint, dense, sourceFilter }: Props) => {
+const FilesPanel = ({ messages, emptyHint, dense, sourceFilter, hideControls }: Props) => {
+
   const allFiles = useMemo(() => extractFiles(messages), [messages]);
   const files = useMemo(
     () => (sourceFilter ? allFiles.filter((f) => f.source === sourceFilter) : allFiles),
