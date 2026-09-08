@@ -12,17 +12,20 @@ interface ChatStore {
   modality: ChatModality;
   conversationId: string;
   messages: ChatMessage[];
+  draftPrompt: string;
   loadConversation: (id: string, msgs: ChatMessage[], modality?: ChatModality) => void;
   newConversation: () => void;
   setMessages: (msgs: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void;
   setConversationId: (id: string) => void;
   setModality: (m: ChatModality) => void;
+  setDraftPrompt: (p: string) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
   modality: "text",
   conversationId: crypto.randomUUID(),
   messages: [],
+  draftPrompt: "",
   loadConversation: (id, msgs, modality) =>
     set({ conversationId: id, messages: msgs, ...(modality ? { modality } : {}) }),
   newConversation: () => set({ conversationId: crypto.randomUUID(), messages: [] }),
@@ -32,4 +35,6 @@ export const useChatStore = create<ChatStore>((set) => ({
     })),
   setConversationId: (id) => set({ conversationId: id }),
   setModality: (m) => set({ modality: m }),
+  setDraftPrompt: (p) => set({ draftPrompt: p }),
 }));
+

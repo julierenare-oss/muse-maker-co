@@ -16,8 +16,9 @@ import { useChatParams } from "@/lib/chatParams";
 const MAX_CHARS = 2000;
 
 const GenerationPage = () => {
-  const { modality, messages, conversationId, setMessages, setModality, newConversation } = useChatStore();
+  const { modality, messages, conversationId, setMessages, setModality, newConversation, draftPrompt, setDraftPrompt } = useChatStore();
   const [prompt, setPrompt] = useState("");
+
   const [files, setFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -31,8 +32,17 @@ const GenerationPage = () => {
   const params = useChatParams();
 
   useEffect(() => {
+    if (draftPrompt) {
+      setPrompt(draftPrompt);
+      setDraftPrompt("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
 
   const handleModalityChange = (m: ChatModality) => {
     if (m !== modality) {
