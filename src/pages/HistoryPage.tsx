@@ -63,10 +63,18 @@ import {
   MOCK_MESSAGES_BY_CONV,
   isMockId,
 } from "@/lib/mockProjects";
+import {
+  mergeWithLocal,
+  getLocalConversations,
+  upsertLocalConversation,
+  removeLocalConversation,
+} from "@/lib/localMessages";
 
 const loadMessagesForConv = async (uuid: string) => {
-  if (isMockId(uuid)) return MOCK_MESSAGES_BY_CONV[uuid] || [];
-  return fetchConversationMessages(uuid);
+  const remote = isMockId(uuid)
+    ? MOCK_MESSAGES_BY_CONV[uuid] || []
+    : await fetchConversationMessages(uuid).catch(() => []);
+  return mergeWithLocal(uuid, remote as any) as any;
 };
 
 const typeIcons: Record<string, typeof MessageSquare> = {
