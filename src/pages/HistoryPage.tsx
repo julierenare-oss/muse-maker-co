@@ -167,19 +167,40 @@ const HistoryPage = () => {
     navigate("/app");
   };
 
+  const handleCreateConversation = (rawTitle: string, type: ChatModality): ConversationItem => {
+    const conv: ConversationItem = {
+      uuid: crypto.randomUUID(),
+      title: rawTitle.trim() || "Новый диалог",
+      type,
+    };
+    upsertLocalConversation({ ...conv, createdAt: new Date().toISOString() });
+    setConversations((prev) => [conv, ...prev]);
+    if (activeView && activeView !== UNASSIGNED) {
+      assignConversation(conv.uuid, activeView);
+      setAssignments(getAssignments());
+    }
+    return conv;
+  };
+
   useEffect(() => {
+    const localConvs = getLocalConversations().map(({ uuid, title, type }) => ({ uuid, title, type }));
     fetchConversations()
       .then((items) => {
         const real = (items ?? []).filter((c: any) => c && c.uuid);
+        const seen = new Set(real.map((c: any) => c.uuid));
         // Merge mock conversations for demo/preview
         const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
-        setConversations([...real, ...mockConvs]);
+        setConversations([
+          ...localConvs.filter((c) => !seen.has(c.uuid)),
+          ...real,
+          ...mockConvs,
+        ]);
       })
       .catch((e) => {
         console.error(e);
         // On failure still show mocks
         const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
-        setConversations(mockConvs);
+        setConversations([...localConvs, ...mockConvs]);
       })
       .finally(() => setLoading(false));
 
