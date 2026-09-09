@@ -428,6 +428,7 @@ const HistoryPage = () => {
             handleNewInProject(project.id);
           }
         }}
+        onCreateConversation={handleCreateConversation}
         onDeleteProject={project ? () => handleDeleteProject(project.id) : undefined}
         onDeleteConversation={(conv) =>
           handleDelete({ stopPropagation: () => {} } as any, conv)
