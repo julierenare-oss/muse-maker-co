@@ -63,10 +63,18 @@ import {
   MOCK_MESSAGES_BY_CONV,
   isMockId,
 } from "@/lib/mockProjects";
+import {
+  mergeWithLocal,
+  getLocalConversations,
+  upsertLocalConversation,
+  removeLocalConversation,
+} from "@/lib/localMessages";
 
 const loadMessagesForConv = async (uuid: string) => {
-  if (isMockId(uuid)) return MOCK_MESSAGES_BY_CONV[uuid] || [];
-  return fetchConversationMessages(uuid);
+  const remote = isMockId(uuid)
+    ? MOCK_MESSAGES_BY_CONV[uuid] || []
+    : await fetchConversationMessages(uuid).catch(() => []);
+  return mergeWithLocal(uuid, remote as any) as any;
 };
 
 const typeIcons: Record<string, typeof MessageSquare> = {
@@ -159,19 +167,40 @@ const HistoryPage = () => {
     navigate("/app");
   };
 
+  const handleCreateConversation = (rawTitle: string, type: ChatModality): ConversationItem => {
+    const conv: ConversationItem = {
+      uuid: crypto.randomUUID(),
+      title: rawTitle.trim() || "Новый диалог",
+      type,
+    };
+    upsertLocalConversation({ ...conv, createdAt: new Date().toISOString() });
+    setConversations((prev) => [conv, ...prev]);
+    if (activeView && activeView !== UNASSIGNED) {
+      assignConversation(conv.uuid, activeView);
+      setAssignments(getAssignments());
+    }
+    return conv;
+  };
+
   useEffect(() => {
+    const localConvs = getLocalConversations().map(({ uuid, title, type }) => ({ uuid, title, type }));
     fetchConversations()
       .then((items) => {
         const real = (items ?? []).filter((c: any) => c && c.uuid);
+        const seen = new Set(real.map((c: any) => c.uuid));
         // Merge mock conversations for demo/preview
         const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
-        setConversations([...real, ...mockConvs]);
+        setConversations([
+          ...localConvs.filter((c) => !seen.has(c.uuid)),
+          ...real,
+          ...mockConvs,
+        ]);
       })
       .catch((e) => {
         console.error(e);
         // On failure still show mocks
         const mockConvs = MOCK_CONVERSATIONS.map(({ uuid, title, type }) => ({ uuid, title, type }));
-        setConversations(mockConvs);
+        setConversations([...localConvs, ...mockConvs]);
       })
       .finally(() => setLoading(false));
 
@@ -242,7 +271,8 @@ const HistoryPage = () => {
     e.stopPropagation();
     setDeletingId(conv.uuid);
     try {
-      if (!isMockId(conv.uuid)) await deleteConversation(conv.uuid);
+      if (!isMockId(conv.uuid)) await deleteConversation(conv.uuid).catch(() => {});
+      removeLocalConversation(conv.uuid);
       setConversations((prev) => prev.filter((c) => c.uuid !== conv.uuid));
       assignConversation(conv.uuid, null);
       setAssignments(getAssignments());
@@ -398,6 +428,7 @@ const HistoryPage = () => {
             handleNewInProject(project.id);
           }
         }}
+        onCreateConversation={handleCreateConversation}
         onDeleteProject={project ? () => handleDeleteProject(project.id) : undefined}
         onDeleteConversation={(conv) =>
           handleDelete({ stopPropagation: () => {} } as any, conv)
