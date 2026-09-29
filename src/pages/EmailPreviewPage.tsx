@@ -147,6 +147,59 @@ const WelcomeEmailTemplate = ({ userEmail = "bob@company.com" }: { userEmail?: s
   </div>
 );
 
+const MemberJoinedEmailTemplate = ({
+  memberName = "Иван",
+  teamName = "Команда NEXAGEN",
+}: {
+  memberName?: string;
+  teamName?: string;
+}) => (
+  <div style={{ fontFamily: "'Inter', Arial, sans-serif", backgroundColor: "#f4f4f5", padding: "40px 20px" }}>
+    <div style={{ maxWidth: "560px", margin: "0 auto", backgroundColor: "#ffffff", borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+      <div style={{ background: "linear-gradient(135deg, #00ffaa, #a855f7)", padding: "32px 40px", textAlign: "center" as const }}>
+        <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#0a0a1a", fontFamily: "'JetBrains Mono', monospace", margin: 0 }}>NEXAGEN</h1>
+      </div>
+      <div style={{ padding: "40px" }}>
+        <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#1a1a2e", margin: "0 0 16px" }}>Вы в команде — добро пожаловать!</h2>
+        <p style={{ fontSize: "15px", color: "#555570", lineHeight: 1.6, margin: "0 0 12px" }}>
+          {memberName ? `Привет, ${memberName}!` : "Привет!"}
+        </p>
+        <p style={{ fontSize: "15px", color: "#555570", lineHeight: 1.6, margin: "0 0 12px" }}>
+          Приглашение принято. Теперь вы участник команды <strong style={{ color: "#1a1a2e" }}>{teamName}</strong>.
+        </p>
+        <p style={{ fontSize: "15px", color: "#555570", lineHeight: 1.6, margin: "0 0 28px" }}>
+          Создавайте текст, изображения и видео, работайте с проектами и просматривайте историю диалогов в одном месте.
+        </p>
+        <div style={{ textAlign: "center" as const }}>
+          <a
+            href="#"
+            style={{
+              display: "inline-block",
+              padding: "14px 36px",
+              backgroundColor: "#00ffaa",
+              color: "#0a0a1a",
+              fontSize: "15px",
+              fontWeight: 600,
+              borderRadius: "8px",
+              textDecoration: "none",
+            }}
+          >
+            Перейти в NEXAGEN
+          </a>
+        </div>
+        <div style={{ marginTop: "32px", padding: "16px 20px", backgroundColor: "#f8f8fb", borderRadius: "8px", borderLeft: "3px solid #00ffaa" }}>
+          <p style={{ fontSize: "13px", color: "#555570", lineHeight: 1.5, margin: 0 }}>
+            Доступные модели и лимиты задаёт владелец команды. Посмотреть их можно в настройках аккаунта.
+          </p>
+        </div>
+      </div>
+      <div style={{ padding: "20px 40px", backgroundColor: "#fafafa", borderTop: "1px solid #eee", textAlign: "center" as const }}>
+        <p style={{ fontSize: "12px", color: "#aaa", margin: 0 }}>© 2026 Nexagen. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+);
+
 const LimitWarningEmailTemplate = ({
   ownerName = "Alice Johnson",
   memberName = "j.rybakova",
@@ -277,7 +330,7 @@ const TopUpRequestEmailTemplate = ({
   </div>
 );
 
-type TemplateKey = "welcome" | "invite" | "reset" | "limit-warning" | "topup-request";
+type TemplateKey = "welcome" | "invite" | "member-joined" | "reset" | "limit-warning" | "topup-request";
 
 const EmailPreviewPage = () => {
   const [activeTemplate, setActiveTemplate] = useState<TemplateKey>("limit-warning");
@@ -285,6 +338,7 @@ const EmailPreviewPage = () => {
   const tabs: { key: TemplateKey; label: string; subject: string }[] = [
     { key: "welcome", label: "Welcome / Set Password", subject: "Welcome to Nexagen — set your password" },
     { key: "invite", label: "Team Invitation", subject: "You've been invited to join Nexagen" },
+    { key: "member-joined", label: "Участник присоединился", subject: "Добро пожаловать в команду NEXAGEN" },
     { key: "reset", label: "Password Reset", subject: "Reset your Nexagen password" },
     { key: "limit-warning", label: "Лимит подходит к концу", subject: "⚠ Осталось 5% лимита у участника j.rybakova" },
     { key: "topup-request", label: "Запрос на доп. бюджет", subject: "j.rybakova просит увеличить лимит до $500/мес" },
@@ -320,6 +374,7 @@ const EmailPreviewPage = () => {
           </div>
           <div className="overflow-auto">
             {activeTemplate === "invite" && <InviteEmailTemplate />}
+            {activeTemplate === "member-joined" && <MemberJoinedEmailTemplate />}
             {activeTemplate === "reset" && <ResetPasswordEmailTemplate />}
             {activeTemplate === "welcome" && <WelcomeEmailTemplate />}
             {activeTemplate === "limit-warning" && <LimitWarningEmailTemplate />}
