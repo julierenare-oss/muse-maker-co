@@ -14,7 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      account_skill_members: {
+        Row: {
+          account_id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skill_selections: {
+        Row: {
+          context_id: string
+          enabled: boolean
+          skill_id: string
+          user_id: string
+        }
+        Insert: {
+          context_id: string
+          enabled?: boolean
+          skill_id: string
+          user_id: string
+        }
+        Update: {
+          context_id?: string
+          enabled?: boolean
+          skill_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_selections_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_space_members: {
+        Row: {
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_space_members_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "skill_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_spaces: {
+        Row: {
+          account_id: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          account_id: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          account_id?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          description: string
+          enabled: boolean
+          file_path: string | null
+          id: string
+          instructions: string
+          name: string
+          owner_id: string | null
+          scope: string
+          source: string
+          space_id: string | null
+          visibility: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          description: string
+          enabled?: boolean
+          file_path?: string | null
+          id?: string
+          instructions: string
+          name: string
+          owner_id?: string | null
+          scope: string
+          source: string
+          space_id?: string | null
+          visibility: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          file_path?: string | null
+          id?: string
+          instructions?: string
+          name?: string
+          owner_id?: string | null
+          scope?: string
+          source?: string
+          space_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "skill_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,0 +1,15 @@
+CREATE TABLE public.skill_spaces (id text PRIMARY KEY, account_id text NOT NULL, owner_id text NOT NULL, name text NOT NULL);
+GRANT ALL ON public.skill_spaces TO service_role;
+ALTER TABLE public.skill_spaces ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.skill_space_members (space_id text NOT NULL REFERENCES public.skill_spaces(id) ON DELETE CASCADE, user_id text NOT NULL, PRIMARY KEY(space_id,user_id));
+GRANT ALL ON public.skill_space_members TO service_role;
+ALTER TABLE public.skill_space_members ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.account_skill_members (account_id text NOT NULL, user_id text NOT NULL, label text NOT NULL, PRIMARY KEY(account_id,user_id));
+GRANT ALL ON public.account_skill_members TO service_role;
+ALTER TABLE public.account_skill_members ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.skills (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), account_id text, owner_id text, name text NOT NULL CHECK(length(name) BETWEEN 1 AND 100), description text NOT NULL CHECK(length(description) BETWEEN 1 AND 2000), instructions text NOT NULL CHECK(length(instructions) BETWEEN 1 AND 100000), source text NOT NULL CHECK(source IN ('service','user')), scope text NOT NULL CHECK(scope IN ('global','space')), space_id text REFERENCES public.skill_spaces(id), visibility text NOT NULL CHECK(visibility IN ('private','project')), enabled boolean NOT NULL DEFAULT true, file_path text, created_at timestamptz NOT NULL DEFAULT now(), CHECK(visibility <> 'project' OR space_id IS NOT NULL), CHECK(scope <> 'space' OR space_id IS NOT NULL));
+GRANT ALL ON public.skills TO service_role;
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.skill_selections (user_id text NOT NULL, context_id text NOT NULL, skill_id uuid NOT NULL REFERENCES public.skills(id) ON DELETE CASCADE, enabled boolean NOT NULL DEFAULT true, PRIMARY KEY(user_id,context_id,skill_id));
+GRANT ALL ON public.skill_selections TO service_role;
+ALTER TABLE public.skill_selections ENABLE ROW LEVEL SECURITY;
