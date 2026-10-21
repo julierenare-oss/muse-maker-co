@@ -62,7 +62,7 @@ import {
   MOCK_CONVERSATIONS,
   MOCK_MESSAGES_BY_CONV,
   isMockId,
-} from "@/lib/mockProjects";
+} from "@/lib/mockSpaces";
 import {
   mergeWithLocal,
   getLocalConversations,
@@ -135,7 +135,7 @@ const ProjectFiles = ({
     <FilesPanel
       messages={messages as any}
       sourceFilter={sourceFilter}
-      emptyHint={emptyHint || "В диалогах этого проекта пока нет вложений или результатов."}
+      emptyHint={emptyHint || "В диалогах этого пространства пока нет вложений или результатов."}
     />
   );
 };
@@ -147,7 +147,7 @@ const HistoryPage = () => {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setSpaces] = useState<Project[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -211,7 +211,7 @@ const HistoryPage = () => {
     for (const p of MOCK_PROJECTS) {
       if (!existingIds.has(p.id)) merged.push(p);
     }
-    setProjects(merged);
+    setSpaces(merged);
 
     const a = getAssignments();
     for (const c of MOCK_CONVERSATIONS) {
@@ -289,18 +289,18 @@ const HistoryPage = () => {
     const name = newName.trim();
     if (!name) return;
     createProject(name);
-    setProjects(getProjects());
+    setSpaces(getProjects());
     setNewName("");
     setCreateOpen(false);
-    toast.success("Проект создан");
+    toast.success("Пространство создано");
   };
 
   const handleDeleteProject = (id: string) => {
     deleteProject(id);
-    setProjects(getProjects());
+    setSpaces(getProjects());
     setAssignments(getAssignments());
     if (activeView === id) setActiveView(null);
-    toast.success("Проект удалён");
+    toast.success("Пространство удалено");
   };
 
   const handleAssign = (conv: ConversationItem, projectId: string | null) => {
@@ -356,11 +356,11 @@ const HistoryPage = () => {
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <FolderInput className="h-4 w-4 mr-2" />
-                Переместить в проект
+                Переместить в пространство
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 {projects.length === 0 && (
-                  <DropdownMenuItem disabled>Нет проектов</DropdownMenuItem>
+                  <DropdownMenuItem disabled>Нет пространств</DropdownMenuItem>
                 )}
                 {projects.map((p) => (
                   <DropdownMenuItem
@@ -377,7 +377,7 @@ const HistoryPage = () => {
             {currentPid && (
               <DropdownMenuItem onClick={() => handleAssign(conv, null)}>
                 <FolderMinus className="h-4 w-4 mr-2" />
-                Убрать из проекта
+                Убрать из пространства
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -404,10 +404,11 @@ const HistoryPage = () => {
     const isUnassigned = activeView === UNASSIGNED;
     const project = projects.find((p) => p.id === activeView);
     const rawItems = isUnassigned ? grouped.unassigned : grouped.byProject[activeView] || [];
-    const title = isUnassigned ? "История" : project?.name || "Проект";
+    const title = isUnassigned ? "История" : project?.name || "Пространство";
 
     return (
       <ProjectWorkspace
+        spaceId={project?.id}
         title={title}
         createdAt={project?.createdAt}
         isUnassigned={isUnassigned}
@@ -443,9 +444,9 @@ const HistoryPage = () => {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Projects</h1>
+          <h1 className="text-xl font-semibold text-foreground">Spaces</h1>
           <p className="text-sm text-muted-foreground">
-            {filteredProjects.length} {filteredProjects.length === 1 ? "проект" : "проектов"}
+            {filteredProjects.length} {filteredProjects.length === 1 ? "пространство" : "пространств"}
             {query && filteredProjects.length !== projects.length && ` (всего ${projects.length})`}
           </p>
         </div>
@@ -453,7 +454,7 @@ const HistoryPage = () => {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Поиск по проектам и диалогам…"
+              placeholder="Поиск по пространствам и диалогам…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 pl-8 text-xs"
@@ -463,15 +464,15 @@ const HistoryPage = () => {
             <DialogTrigger asChild>
               <Button variant="glow" size="sm">
                 <FolderPlus className="h-4 w-4" />
-                Новый проект
+                Новое пространство
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Создать проект</DialogTitle>
+                <DialogTitle>Создать пространство</DialogTitle>
               </DialogHeader>
               <Input
-                placeholder="Название проекта"
+                placeholder="Название пространства"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
@@ -496,7 +497,7 @@ const HistoryPage = () => {
         </div>
       ) : filteredProjects.length === 0 && filteredUnassigned.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          {query ? "Ничего не найдено." : "Пока ничего нет. Создайте проект или начните новый диалог."}
+          {query ? "Ничего не найдено." : "Пока ничего нет. Создайте пространство или начните новый диалог."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -555,7 +556,7 @@ const HistoryPage = () => {
               </div>
               <h3 className="text-sm font-medium text-foreground truncate">История</h3>
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Без проекта</span>
+                <span>Без пространства</span>
                 <span>
                   {filteredUnassigned.length}{" "}
                   {filteredUnassigned.length === 1 ? "диалог" : "диалогов"}

@@ -383,7 +383,7 @@ const ProjectWorkspace = ({
                 messages={allMessages}
                 sourceFilter="user"
                 dense
-                emptyHint="Референсы появятся, когда вы прикрепите файлы в диалогах проекта."
+                emptyHint="Референсы появятся, когда вы прикрепите файлы в диалогах пространства."
               />
             </div>
           </Panel>
@@ -522,7 +522,7 @@ const ProjectWorkspace = ({
                   placeholder={
                     activeConv
                       ? "Продолжите диалог…"
-                      : "Опишите задачу — диалог создастся внутри проекта…"
+                      : "Опишите задачу — диалог создастся внутри пространства…"
                   }
                   className="min-h-[52px] resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
                 />
@@ -582,7 +582,7 @@ const ProjectWorkspace = ({
           <div className="bg-accent/10 border border-accent/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <MoreVertical className="h-3.5 w-3.5 text-accent" />
-              <span className="text-xs font-semibold text-accent">Активность проекта</span>
+              <span className="text-xs font-semibold text-accent">Активность пространства</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-foreground font-semibold">{allMessages.length} сообщений</span>
