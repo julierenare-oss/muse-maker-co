@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import FilesPanel from "@/components/FilesPanel";
+import SkillsPanel from "@/components/SkillsPanel";
 import ChatBubble from "@/components/ChatBubble";
 import ModalitySelector from "@/components/ModalitySelector";
 import {
@@ -49,6 +50,7 @@ const typeLabels: Record<string, string> = {
 };
 
 interface Props {
+  spaceId?: string;
   title: string;
   createdAt?: string;
   isUnassigned: boolean;
@@ -85,6 +87,7 @@ const Panel = ({
 );
 
 const ProjectWorkspace = ({
+  spaceId,
   title,
   createdAt,
   isUnassigned,
@@ -208,7 +211,7 @@ const ProjectWorkspace = ({
 
   const submitPrompt = () => {
     const text = prompt.trim();
-    if (!text || isGenerating) return;
+    if (!text || isGenerating || uploading) return;
 
     let convId = activeId;
     if (!convId) {
@@ -221,6 +224,7 @@ const ProjectWorkspace = ({
       setActiveId(created.uuid);
     }
 
+    const conversationId = convId;
     const attachments = [...uploadedUrls];
     const base: ChatMessage[] = [
       ...messages,
@@ -241,7 +245,7 @@ const ProjectWorkspace = ({
     const finish = (final: ChatMessage) => {
       const next = [...base.slice(0, -1), final];
       setMessages(next);
-      persist(convId!, next);
+      persist(conversationId, next);
       setIsGenerating(false);
       setStatus(null);
       abortRef.current = null;
@@ -265,7 +269,9 @@ const ProjectWorkspace = ({
             finish({ role: "assistant", content: acc, ...(atts?.length ? { attachments: atts } : {}) }),
         },
         controller.signal,
-        attachments
+        attachments,
+        undefined,
+        spaceId
       ).catch(onError);
     } else if (modality === "image") {
       sendImageMessage(
@@ -278,7 +284,9 @@ const ProjectWorkspace = ({
           onDone: (atts) =>
             finish({ role: "assistant", content: "", ...(atts?.length ? { attachments: atts } : {}) }),
         },
-        controller.signal
+        controller.signal,
+        undefined,
+        spaceId
       ).catch(onError);
     } else {
       sendVideoMessage(
@@ -291,7 +299,9 @@ const ProjectWorkspace = ({
           onDone: (atts) =>
             finish({ role: "assistant", content: "", ...(atts?.length ? { attachments: atts } : {}) }),
         },
-        controller.signal
+        controller.signal,
+        undefined,
+        spaceId
       ).catch(onError);
     }
   };
@@ -366,6 +376,7 @@ const ProjectWorkspace = ({
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0">
         {/* Left: references + dialogs */}
         <div className="lg:col-span-3 flex flex-col gap-5 min-h-0">
+          <SkillsPanel spaceId={spaceId} spaceName={title} />
           <Panel title="База знаний / референсы" className="max-h-[38%] overflow-hidden">
             <div className="overflow-y-auto pr-1">
               <FilesPanel

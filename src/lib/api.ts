@@ -1,4 +1,6 @@
 import { useAuthStore } from "./auth";
+import { promptWithSkills } from "./skills";
+import { getAssignments } from "./projects";
 
 const API_BASE = "https://kafkatestdomen.site/api/v1";
 const PROJECT_ID = "1";
@@ -153,14 +155,16 @@ export async function sendTextMessage(
   callbacks: SSECallbacks,
   signal?: AbortSignal,
   attachments?: string[],
-  params?: TextChatParams
+  params?: TextChatParams,
+  spaceId?: string
 ) {
+  const content = await promptWithSkills(message, spaceId || getAssignments()[conversationId], signal);
   const res = await fetch(`${API_BASE}/conversations/text`, {
     method: "POST",
     headers: { ...getHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({
       conversation_id: conversationId,
-      content: message,
+      content,
       model,
       attachments: attachments || [],
       temperature: params?.temperature ?? 1,
@@ -169,6 +173,7 @@ export async function sendTextMessage(
     signal,
   });
 
+  if (!res.ok) throw new Error("Generation failed");
   const reader = res.body?.getReader();
   if (!reader) return;
 
@@ -215,14 +220,16 @@ export async function sendImageMessage(
   conversationId: string,
   callbacks: SSECallbacks,
   signal?: AbortSignal,
-  params?: ImageChatParams
+  params?: ImageChatParams,
+  spaceId?: string
 ) {
+  const content = await promptWithSkills(message, spaceId || getAssignments()[conversationId], signal);
   const res = await fetch(`${API_BASE}/conversations/image`, {
     method: "POST",
     headers: { ...getHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({
       conversation_id: conversationId,
-      content: message,
+      content,
       model,
       n: params?.n ?? 1,
       size: params?.size ?? "1024x1024",
@@ -240,14 +247,16 @@ export async function sendVideoMessage(
   conversationId: string,
   callbacks: SSECallbacks,
   signal?: AbortSignal,
-  params?: VideoChatParams
+  params?: VideoChatParams,
+  spaceId?: string
 ) {
+  const content = await promptWithSkills(message, spaceId || getAssignments()[conversationId], signal);
   const res = await fetch(`${API_BASE}/conversations/video`, {
     method: "POST",
     headers: { ...getHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({
       conversation_id: conversationId,
-      content: message,
+      content,
       model,
       size: params?.size ?? "1280x720",
       seconds: params?.seconds ?? "5",
@@ -259,6 +268,7 @@ export async function sendVideoMessage(
 }
 
 async function parseMediaSSE(res: Response, callbacks: SSECallbacks) {
+  if (!res.ok) throw new Error("Generation failed");
   const reader = res.body?.getReader();
   if (!reader) return;
 

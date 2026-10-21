@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, FolderKanban, BarChart3, LayoutDashboard,
   Settings, Users, Key, ChevronLeft, ChevronRight, LogOut,
-  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2,
+  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,8 @@ import { useAuthStore } from "@/lib/auth";
 import { fetchConversations, fetchConversationMessages, type ConversationItem } from "@/lib/api";
 
 const navItems = [
-  { icon: FolderKanban, label: "Projects", path: "/app/history" },
+  { icon: FolderKanban, label: "Spaces", path: "/app/history" },
+  { icon: Sparkles, label: "Skills", path: "/app/skills" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/app/dashboard" },
   { icon: BarChart3, label: "Billing", path: "/app/stats", ownerOnly: true },
   { icon: Users, label: "Team", path: "/app/team", ownerOnly: true },
@@ -105,7 +106,7 @@ const AppSidebar = () => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
             return (
-              <button
+              <Button variant="ghost"
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={cn(
@@ -119,7 +120,7 @@ const AppSidebar = () => {
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span>{item.label}</span>}
-              </button>
+              </Button>
             );
           })}
 

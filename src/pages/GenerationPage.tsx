@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ModalitySelector from "@/components/ModalitySelector";
 import ModalityParams from "@/components/ModalityParams";
 import FilesPanel from "@/components/FilesPanel";
+import SkillsPanel from "@/components/SkillsPanel";
+import { getAssignments, getProjects } from "@/lib/projects";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { sendTextMessage, sendImageMessage, sendVideoMessage, uploadFile } from "@/lib/api";
 import { useChatStore, type ChatModality } from "@/lib/chatStore";
@@ -30,6 +32,8 @@ const GenerationPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const params = useChatParams();
+  const spaceId = getAssignments()[conversationId];
+  const spaceName = getProjects().find(p => p.id === spaceId)?.name;
 
   useEffect(() => {
     if (draftPrompt) {
@@ -373,6 +377,7 @@ const GenerationPage = () => {
           </TabsList>
           <TabsContent value="params" className="flex-1 overflow-y-auto px-4 pb-4 mt-0">
             <ModalityParams modality={modality} selectedModel={selectedModel} onModelChange={setSelectedModel} />
+            <SkillsPanel spaceId={spaceId} spaceName={spaceName} />
           </TabsContent>
           <TabsContent value="results" className="flex-1 overflow-y-auto px-3 pb-4 mt-0">
             <FilesPanel
