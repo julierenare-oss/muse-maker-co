@@ -1,9 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as fflate from 'fflate';
-import * as yaml from 'yaml';
-
-vi.mock('npm:fflate@0.8.3', () => fflate);
-vi.mock('npm:yaml@2.9.1', () => yaml);
 
 import { parseSkillPackage } from '../../supabase/functions/skills/package';
 
