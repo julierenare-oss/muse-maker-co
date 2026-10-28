@@ -76,9 +76,11 @@ Deno.serve(async (req) => {
       if (body.action === 'toggle') result = checked(await db.from('skills').update({ enabled: !!body.enabled }).eq('id', skill.id));
       else { result = checked(await db.from('skills').delete().eq('id', skill.id)); if (skill.file_path) await db.storage.from('skill-packages').remove([skill.file_path]); }
     } else if (body.action === 'instructions') {
-      const context = body.spaceId || '__global__';
-      if (body.spaceId && !memberSpaces.includes(body.spaceId)) throw new Error('Нет доступа к пространству');
-      result = readable.filter(s => appliesToContext(s, body.spaceId || null) && selections.some(a => a.skill_id === s.id && a.enabled && (a.context_id === context || (s.scope === 'global' && a.context_id === '__global__')))).map(s => ({ name: s.name, instructions: s.instructions }));
+      const requestedSpace = body.spaceId ? text(body.spaceId) : null;
+      const registered = requestedSpace ? checked(await db.from('skill_spaces').select('id,account_id').eq('id', requestedSpace).maybeSingle()) : null;
+      if (registered && (registered.account_id !== accountId || !memberSpaces.includes(registered.id))) throw new Error('Нет доступа к пространству');
+      const context = registered?.id || '__global__';
+      result = readable.filter(s => appliesToContext(s, registered?.id || null) && selections.some(a => a.skill_id === s.id && a.enabled && (a.context_id === context || (s.scope === 'global' && a.context_id === '__global__')))).map(s => ({ name: s.name, instructions: s.instructions }));
     } else throw new Error('Неизвестное действие');
     return Response.json({ data: result }, { headers: cors });
   } catch (err) { return Response.json({ error: err instanceof Error ? err.message : 'Ошибка Skills' }, { status: 400, headers: cors }); }
