@@ -62,7 +62,7 @@ import {
   MOCK_CONVERSATIONS,
   MOCK_MESSAGES_BY_CONV,
   isMockId,
-} from "@/lib/mockSpaces";
+} from "@/lib/mockProjects";
 import {
   mergeWithLocal,
   getLocalConversations,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Sparkles, Plus, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +26,7 @@ export default function SkillsPanel({ spaceId, spaceName }: { spaceId?: string; 
       </div>
     </div>
     {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+    {data && !data.userId && <Button variant="link" size="sm" asChild><Link to="/">Войти для подключения Skills</Link></Button>}
     {error && <div className="text-xs text-destructive">{error.message}<Button variant="link" size="sm" onClick={() => refresh()}>Повторить</Button></div>}
     {!ready && data?.userId && <Button variant="outline" size="sm" className="w-full whitespace-normal h-auto py-2" disabled={busy} onClick={() => act({ action: "registerSpace", id: spaceId, name: spaceName })}>Подключить Skills к пространству</Button>}
     {available.map(skill => {

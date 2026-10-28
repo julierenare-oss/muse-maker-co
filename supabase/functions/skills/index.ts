@@ -1,9 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { unzipSync } from 'npm:fflate@0.8.3';
-import { parse } from 'npm:yaml@2.9.1';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { parseSkillPackage } from './package.ts';
 import { canReadSkill, appliesToContext } from './policy.ts';
 
-const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-external-token' };
+const cors = { ...corsHeaders, 'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-external-token` };
 const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 const service = [
   { id: '11111111-1111-4111-8111-111111111111', name: 'Технический редактор', description: 'Структура, точные формулировки и минимум воды.', instructions: 'Пиши кратко и технически точно. Структурируй ответ. Отмечай неопределённость.', source: 'service', scope: 'global', visibility: 'private', enabled: true, owner_id: null, space_id: null },
@@ -14,8 +14,11 @@ function checked<T>(result: { data: T; error: unknown }): T { if (result.error) 
 const text = (v: unknown, max = 200) => { if (typeof v !== 'string' || !v.trim() || v.length > max) throw new Error('Некорректное значение'); return v.trim(); };
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+  if (req.method !== 'POST') return Response.json({ error: 'Метод не поддерживается' }, { status: 405, headers: cors });
   try {
     const body = await req.json();
+    if (!body || typeof body !== 'object' || !['list', 'registerSpace', 'member', 'create', 'select', 'toggle', 'delete', 'instructions'].includes(body.action)) throw new Error('Неизвестное действие');
+    if (['member', 'select', 'toggle'].includes(body.action) && typeof body.enabled !== 'boolean') throw new Error('Некорректное состояние');
     const token = req.headers.get('x-external-token');
     let userId = ''; const accountId = 'external:1';
     if (token) {
@@ -55,17 +58,8 @@ Deno.serve(async (req) => {
       if (typeof body.file !== 'string' || body.file.length > 7000000) throw new Error('Файл слишком большой');
       const bytes = Uint8Array.from(atob(body.file), c => c.charCodeAt(0));
       if (bytes.length > 5 * 1024 * 1024) throw new Error('Файл слишком большой');
-      const filename = text(body.filename, 255); let raw = '';
-      if (filename.toLowerCase() === 'skill.md') raw = new TextDecoder().decode(bytes);
-      else if (filename.toLowerCase().endsWith('.zip')) {
-        const entries = unzipSync(bytes, { filter: f => /(^|\/)skill\.md$/i.test(f.name) && f.originalSize <= 100000 });
-        const names = Object.keys(entries).filter(n => !n.startsWith('__MACOSX/') && !n.split('/').includes('..'));
-        if (names.length !== 1) throw new Error('ZIP должен содержать один SKILL.md');
-        raw = new TextDecoder().decode(entries[names[0]]);
-      } else throw new Error('Загрузите SKILL.md или ZIP');
-      const match = raw.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]+)$/);
-      if (!match) throw new Error('SKILL.md должен содержать name и description в YAML-заголовке');
-      const meta = parse(match[1]); const name = text(meta?.name, 100); const description = text(meta?.description, 2000); const instructions = text(match[2], 100000);
+       const filename = text(body.filename, 255);
+       const { name, description, instructions } = parseSkillPackage(filename, bytes);
       const path = `${crypto.randomUUID()}/${filename.toLowerCase().endsWith('.zip') ? 'skill.zip' : 'SKILL.md'}`;
       checked(await db.storage.from('skill-packages').upload(path, bytes, { contentType: filename.endsWith('.zip') ? 'application/zip' : 'text/markdown' }));
       const insert = await db.from('skills').insert({ account_id: accountId, owner_id: userId, name, description, instructions, source: 'user', scope: body.scope, space_id: spaceId, visibility: body.visibility, file_path: path });
@@ -82,9 +76,11 @@ Deno.serve(async (req) => {
       if (body.action === 'toggle') result = checked(await db.from('skills').update({ enabled: !!body.enabled }).eq('id', skill.id));
       else { result = checked(await db.from('skills').delete().eq('id', skill.id)); if (skill.file_path) await db.storage.from('skill-packages').remove([skill.file_path]); }
     } else if (body.action === 'instructions') {
-      const context = body.spaceId || '__global__';
-      if (body.spaceId && !memberSpaces.includes(body.spaceId)) throw new Error('Нет доступа к пространству');
-      result = readable.filter(s => appliesToContext(s, body.spaceId || null) && selections.some(a => a.skill_id === s.id && a.enabled && (a.context_id === context || (s.scope === 'global' && a.context_id === '__global__')))).map(s => ({ name: s.name, instructions: s.instructions }));
+      const requestedSpace = body.spaceId ? text(body.spaceId) : null;
+      const registered = requestedSpace ? checked(await db.from('skill_spaces').select('id,account_id').eq('id', requestedSpace).maybeSingle()) : null;
+      if (registered && (registered.account_id !== accountId || !memberSpaces.includes(registered.id))) throw new Error('Нет доступа к пространству');
+      const context = registered?.id || '__global__';
+      result = readable.filter(s => appliesToContext(s, registered?.id || null) && selections.some(a => a.skill_id === s.id && a.enabled && (a.context_id === context || (s.scope === 'global' && a.context_id === '__global__')))).map(s => ({ name: s.name, instructions: s.instructions }));
     } else throw new Error('Неизвестное действие');
     return Response.json({ data: result }, { headers: cors });
   } catch (err) { return Response.json({ error: err instanceof Error ? err.message : 'Ошибка Skills' }, { status: 400, headers: cors }); }
