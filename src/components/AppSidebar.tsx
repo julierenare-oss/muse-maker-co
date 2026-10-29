@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, FolderKanban, BarChart3, LayoutDashboard,
   Settings, Users, Key, ChevronLeft, ChevronRight, LogOut,
-  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2, Sparkles,
+  ChevronDown, MessageSquare, Image as ImageIcon, Video, Loader2, Sparkles, Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import { fetchConversations, fetchConversationMessages, type ConversationItem } 
 const navItems = [
   { icon: FolderKanban, label: "Spaces", path: "/app/history" },
   { icon: Sparkles, label: "Skills", path: "/app/skills" },
+  { icon: Bookmark, label: "Библиотека", path: "/app/library" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/app/dashboard" },
   { icon: BarChart3, label: "Billing", path: "/app/stats", ownerOnly: true },
   { icon: Users, label: "Team", path: "/app/team", ownerOnly: true },

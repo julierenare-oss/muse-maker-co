@@ -41,7 +41,7 @@ const GenerationPage = () => {
       setDraftPrompt("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [draftPrompt, setDraftPrompt]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -231,6 +231,7 @@ const GenerationPage = () => {
                     message={msg}
                     isLast={i === messages.length - 1}
                     isGenerating={isGenerating}
+                    modality={modality}
                   />
                 ))}
                 {/* Generation status indicator for image/video */}

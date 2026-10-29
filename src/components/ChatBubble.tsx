@@ -5,11 +5,14 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { CodeBlock, InlineCode } from "./CodeBlock";
 import type { ChatMessage } from "@/lib/chatStore";
+import type { ChatModality } from "@/lib/chatStore";
+import SavePromptButton from "./SavePromptButton";
 
 interface ChatBubbleProps {
   message: ChatMessage;
   isLast: boolean;
   isGenerating: boolean;
+  modality?: ChatModality;
 }
 
 const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url.split("?")[0]);
@@ -47,7 +50,7 @@ const AttachmentRenderer = ({ urls }: { urls: string[] }) => (
   </div>
 );
 
-const ChatBubble = ({ message, isLast, isGenerating }: ChatBubbleProps) => {
+const ChatBubble = ({ message, isLast, isGenerating, modality = "text" }: ChatBubbleProps) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -149,6 +152,7 @@ const ChatBubble = ({ message, isLast, isGenerating }: ChatBubbleProps) => {
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? "Copied" : "Copy"}
         </button>
+        {message.role === "user" && message.content.trim() && <div className="flex justify-end mt-1"><SavePromptButton text={message.content} modality={modality} /></div>}
       </div>
 
       {message.role === "user" && (
