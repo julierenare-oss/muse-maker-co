@@ -32,6 +32,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_prompts: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          is_favorite: boolean
+          modality: string
+          owner_id: string
+          prompt: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          modality?: string
+          owner_id: string
+          prompt: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          modality?: string
+          owner_id?: string
+          prompt?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       skill_selections: {
         Row: {
           context_id: string
