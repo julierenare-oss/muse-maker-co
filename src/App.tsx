@@ -18,6 +18,7 @@ import TeamPage from "./pages/TeamPage";
 import ApiKeysPage from "./pages/ApiKeysPage";
 import SettingsPage from "./pages/SettingsPage";
 import SkillsPage from "./pages/SkillsPage";
+import PromptLibraryPage from "./pages/PromptLibraryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route index element={<GenerationPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="skills" element={<SkillsPage />} />
+            <Route path="library" element={<PromptLibraryPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="team" element={<TeamPage />} />

@@ -479,6 +479,7 @@ const ProjectWorkspace = ({
                     message={m}
                     isLast={i === messages.length - 1}
                     isGenerating={isGenerating}
+                    modality={modality}
                   />
                 ))
               )}

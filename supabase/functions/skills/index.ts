@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { parseSkillPackage } from './package.ts';
 import { canReadSkill, appliesToContext } from './policy.ts';
+import { validatePrompt, promptOwnerScope } from './prompts.ts';
 
 const cors = { ...corsHeaders, 'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-external-token` };
 const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
@@ -17,7 +18,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return Response.json({ error: 'Метод не поддерживается' }, { status: 405, headers: cors });
   try {
     const body = await req.json();
-    if (!body || typeof body !== 'object' || !['list', 'registerSpace', 'member', 'create', 'select', 'toggle', 'delete', 'instructions'].includes(body.action)) throw new Error('Неизвестное действие');
+    if (!body || typeof body !== 'object' || !['list', 'registerSpace', 'member', 'create', 'select', 'toggle', 'delete', 'instructions', 'promptList', 'promptSave', 'promptDelete'].includes(body.action)) throw new Error('Неизвестное действие');
     if (['member', 'select', 'toggle'].includes(body.action) && typeof body.enabled !== 'boolean') throw new Error('Некорректное состояние');
     const token = req.headers.get('x-external-token');
     let userId = ''; const accountId = 'external:1';
@@ -30,7 +31,20 @@ Deno.serve(async (req) => {
       userId = text(claims.sub);
       checked(await db.from('account_skill_members').upsert({ account_id: accountId, user_id: userId, label: userId }));
     }
-    if (!userId && body.action !== 'list') return Response.json({ error: 'Для сохранения Skills войдите в аккаунт NEXAGEN' }, { status: 401, headers: cors });
+    if (!userId && body.action !== 'list') return Response.json({ error: 'Войдите в аккаунт NEXAGEN' }, { status: 401, headers: cors });
+    if (['promptList', 'promptSave', 'promptDelete'].includes(body.action)) {
+      const owner = promptOwnerScope(accountId, userId);
+      let result: unknown;
+      if (body.action === 'promptList') result = checked(await db.from('saved_prompts').select('*').match(owner).order('updated_at', { ascending: false }));
+      else if (body.action === 'promptSave') {
+        const values = validatePrompt(body);
+        if (body.id) {
+          const id = text(body.id);
+          result = checked(await db.from('saved_prompts').update({ ...values, updated_at: new Date().toISOString() }).match(owner).eq('id', id).select('id').single());
+        } else result = checked(await db.from('saved_prompts').insert({ ...values, ...owner }).select('id').single());
+      } else result = checked(await db.from('saved_prompts').delete().match(owner).eq('id', text(body.id)).select('id').single());
+      return Response.json({ data: result }, { headers: cors });
+    }
     const spaces = userId ? checked(await db.from('skill_spaces').select('*').eq('account_id', accountId)) : [];
     const memberships = userId ? checked(await db.from('skill_space_members').select('*').eq('user_id', userId)) : [];
     const memberSpaces = [...spaces.filter(s => s.owner_id === userId).map(s => s.id), ...memberships.map(m => m.space_id)];

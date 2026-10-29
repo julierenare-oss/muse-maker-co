@@ -5,3 +5,4 @@
 - Uploaded skill content is immutable; activation, scope and visibility are separate from content. Never execute archive scripts.
 - Resolve selected Skills through the Cloud function in the shared generation API for every modality; keep the displayed user prompt unchanged and pass space context explicitly from the workspace.
 - Use a shared Skills query and importer across the catalog and chat settings so mutations refresh every visible selector.
+- Store personal prompt libraries in Cloud behind external JWT validation and server-derived account/owner filters; use one shared query and save dialog across both chat views and the library to keep saved prompts consistent.
