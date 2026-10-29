@@ -7,7 +7,8 @@
 - [ ] Verify upload, selection, shared access and assistant reply end-to-end with a real external NEXAGEN session; blocked by unavailable external session.
 
 # Prompt library
-- [ ] Store personal prompts securely in Cloud for external NEXAGEN participants.
-- [ ] Add favorites, tags, search, editing and deletion to Library.
-- [ ] Save from both chat views and reuse in a new request.
-- [ ] Test access and validation rules; verify the available browser flow.
+- [x] Store personal prompts securely in Cloud for external NEXAGEN participants.
+- [x] Add favorites, tags, search, editing and deletion to Library.
+- [x] Save from both chat views and reuse in a new request.
+- [x] Test access and validation rules; verify signed-out browser state and new request navigation.
+- [ ] Verify saving, organization and reuse end-to-end with a real external NEXAGEN session; blocked by unavailable external session.
